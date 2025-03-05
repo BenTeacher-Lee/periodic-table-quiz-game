@@ -9,6 +9,15 @@ const RoomManager = () => {
   const [isNameSet, setIsNameSet] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // 在組件初始化時，從localStorage檢查是否有保存的暱稱
+  useEffect(() => {
+    const savedName = localStorage.getItem('playerName');
+    if (savedName) {
+      setPlayerName(savedName);
+      setIsNameSet(true);
+    }
+  }, []);
+
   // 使用空字串作為預設值，而不是在條件語句中使用 Hook
   const { 
     rooms, 
@@ -24,6 +33,8 @@ const RoomManager = () => {
   const validatePlayerName = () => {
     const nameRegex = /^[a-zA-Z\u4e00-\u9fa5]{1,16}$/;
     if (nameRegex.test(playerName)) {
+      // 將暱稱存儲到localStorage
+      localStorage.setItem('playerName', playerName);
       setIsNameSet(true);
     } else {
       alert('暱稱只能包含中文或英文，且長度不超過16字元');
@@ -62,6 +73,16 @@ const RoomManager = () => {
   const handleStartGame = () => {
     if (!isNameSet) return;  // 如果名稱未設置，不執行操作
     startGame();
+  };
+  
+  // 登出功能
+  const handleLogout = () => {
+    localStorage.removeItem('playerName');
+    setPlayerName('');
+    setIsNameSet(false);
+    if (currentRoom) {
+      leaveRoom();
+    }
   };
 
   // 顯示遊戲區域
@@ -103,7 +124,15 @@ const RoomManager = () => {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold mb-4">房間：{currentRoom.name}</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">房間：{currentRoom.name}</h2>
+            <button 
+              onClick={handleLogout}
+              className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 text-sm"
+            >
+              登出
+            </button>
+          </div>
           
           <div className="mb-4">
             <h3 className="text-lg font-semibold">玩家列表</h3>
@@ -146,7 +175,15 @@ const RoomManager = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4">歡迎, {playerName}!</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">歡迎, {playerName}!</h2>
+          <button 
+            onClick={handleLogout}
+            className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 text-sm"
+          >
+            登出
+          </button>
+        </div>
         
         {/* 創建房間 */}
         <div className="mb-6">
