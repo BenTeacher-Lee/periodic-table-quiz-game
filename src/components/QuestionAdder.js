@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+// src/components/QuestionAdder.js
+import React, { useState, useEffect } from 'react';
+import { ref, push, set, onValue, remove } from 'firebase/database';
+import { database } from '../firebase';
 
 const QuestionAdder = () => {
   const [questions, setQuestions] = useState([]);
@@ -7,6 +10,26 @@ const QuestionAdder = () => {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
   const [correctAnswer, setCorrectAnswer] = useState(0);
+
+  // 從 Firebase 加載已有的題目
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const questionsRef = ref(database, 'questions');
+    const unsubscribe = onValue(questionsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const questionList = Object.keys(data).map(key => ({
+        id: key,
+        ...data[key]
+      }));
+      
+      setQuestions(questionList);
+    });
+
+    return () => unsubscribe();
+  }, [isAuthenticated]);
 
   const handlePasswordSubmit = () => {
     if (password === '850227') {
@@ -34,19 +57,27 @@ const QuestionAdder = () => {
       return;
     }
 
+    // 創建新題目
+    const questionsRef = ref(database, 'questions');
+    const newQuestionRef = push(questionsRef);
     const newQuestion = {
-      id: Date.now().toString(),
       question,
       options,
       correctAnswer
     };
 
-    setQuestions([...questions, newQuestion]);
+    set(newQuestionRef, newQuestion);
 
     // 重置表單
     setQuestion('');
     setOptions(['', '', '', '']);
     setCorrectAnswer(0);
+  };
+
+  // 刪除題目
+  const deleteQuestion = (questionId) => {
+    const questionRef = ref(database, `questions/${questionId}`);
+    remove(questionRef);
   };
 
   // 密碼輸入畫面
@@ -137,11 +168,17 @@ const QuestionAdder = () => {
         ) : (
           <ul className="space-y-2 max-h-48 overflow-y-auto">
             {questions.map((q, index) => (
-              <li key={q.id} className="p-2 border rounded bg-gray-50">
-                <div className="font-medium">題目 {index + 1}：{q.question}</div>
+              <li key={q.id} className="p-2 border rounded bg-gray-50 relative">
+                <div className="font-medium pr-8">題目 {index + 1}：{q.question}</div>
                 <div className="text-sm text-gray-600">
                   正確答案：{q.options[q.correctAnswer]}
                 </div>
+                <button 
+                  onClick={() => deleteQuestion(q.id)}
+                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                >
+                  ✕
+                </button>
               </li>
             ))}
           </ul>

@@ -1,19 +1,10 @@
+i// src/App.js
 import React, { useState } from 'react';
-import QuestionAdder from './components/QuestionAdder';
 import RoomManager from './components/RoomManager';
-import GameArea from './components/GameArea';
+import QuestionAdder from './components/QuestionAdder';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState('roomManager'); // 'roomManager' 或 'questionAdder'
-  const [players, setPlayers] = useState([
-    { name: '玩家1', score: 0 },
-    { name: '玩家2', score: 0 }
-  ]);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const handleGameEnd = () => {
-    setIsPlaying(false);
-  };
 
   return (
     <div className="App min-h-screen bg-blue-50 pb-10">
@@ -43,10 +34,7 @@ function App() {
 
       <main className="container mx-auto">
         {currentScreen === 'questionAdder' && <QuestionAdder />}
-        {currentScreen === 'roomManager' && !isPlaying && <RoomManager />}
-        {currentScreen === 'roomManager' && isPlaying && (
-          <GameArea players={players} onGameEnd={handleGameEnd} />
-        )}
+        {currentScreen === 'roomManager' && <RoomManager />}
       </main>
     </div>
   );
