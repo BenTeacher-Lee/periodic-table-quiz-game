@@ -114,4 +114,104 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
             ))}
           </div>
 
-          <div className="flex space-x-6 justify-center
+          <div className="flex space-x-6 justify-center">
+            <button 
+              onClick={restartGame}
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg text-xl font-bold hover:bg-blue-600 transition shadow-md"
+            >
+              再來一局
+            </button>
+            <button 
+              onClick={() => {
+                endGame();
+                if (onGameEnd) onGameEnd();
+              }}
+              className="bg-red-500 text-white px-6 py-3 rounded-lg text-xl font-bold hover:bg-red-600 transition shadow-md"
+            >
+              結束遊戲
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 遊戲中
+  return (
+    <div className="container mx-auto p-4">
+      <div className={`bg-white p-8 rounded-lg shadow-lg ${showCorrectEffect ? 'correct-answer' : ''}`}>
+        <h2 className="text-3xl font-bold mb-6 text-center">元素週期表搶答遊戲</h2>
+        
+        {/* 分數動畫 */}
+        {scoreAnimations.map(anim => (
+          <div 
+            key={anim.id}
+            className="score-animation"
+            style={{
+              top: '50%',
+              left: `calc(50% + ${anim.x - 100}px)`,
+            }}
+          >
+            +1分!
+          </div>
+        ))}
+        
+        <div className="mb-8">
+          <h3 className="text-2xl mb-6 text-center">{currentQuestion.question}</h3>
+          <div className="grid grid-cols-2 gap-6">
+            {currentQuestion.options.map((option, index) => (
+              <button 
+                key={index}
+                onClick={() => handleCheckAnswer(index)}
+                disabled={currentPlayer !== playerName}
+                className={`p-6 rounded-lg text-xl font-semibold ${
+                  currentPlayer !== playerName 
+                    ? 'bg-gray-300 cursor-not-allowed' 
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-xl font-semibold mb-4 text-center">玩家</h3>
+          <div className="space-y-4">
+            {players.map((player, index) => (
+              <div 
+                key={index} 
+                className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
+              >
+                <div className="text-xl">
+                  <span>{player.name}</span>
+                  <span className="ml-6 font-bold">分數：{player.score}</span>
+                </div>
+                <button 
+                  onClick={() => quickAnswer()}
+                  disabled={currentPlayer !== null || player.name !== playerName}
+                  className={`px-6 py-3 rounded-lg text-lg font-bold ${
+                    currentPlayer !== null || player.name !== playerName
+                      ? 'bg-gray-300 cursor-not-allowed' 
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
+                >
+                  搶答
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {currentPlayer && (
+          <div className="mt-6 p-4 bg-yellow-100 rounded-lg text-center text-xl">
+            目前搶答者：<span className="font-bold text-yellow-600">{currentPlayer}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default GameArea;
