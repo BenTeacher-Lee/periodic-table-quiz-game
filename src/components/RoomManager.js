@@ -1,5 +1,5 @@
 // src/components/RoomManager.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
 
@@ -9,7 +9,7 @@ const RoomManager = () => {
   const [isNameSet, setIsNameSet] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // 只有在用戶設置名稱後才初始化useRooms
+  // 使用空字串作為預設值，而不是在條件語句中使用 Hook
   const { 
     rooms, 
     currentRoom, 
@@ -18,7 +18,7 @@ const RoomManager = () => {
     joinRoom, 
     leaveRoom, 
     startGame 
-  } = isNameSet ? useRooms(playerName) : {};
+  } = useRooms(playerName || '');
 
   // 驗證玩家名稱
   const validatePlayerName = () => {
@@ -32,6 +32,7 @@ const RoomManager = () => {
 
   // 創建新房間
   const handleCreateRoom = () => {
+    if (!isNameSet) return;  // 如果名稱未設置，不執行操作
     if (!roomName.trim()) {
       alert('請輸入房間名稱');
       return;
@@ -43,6 +44,24 @@ const RoomManager = () => {
   // 遊戲結束回調
   const handleGameEnd = () => {
     setIsPlaying(false);
+  };
+
+  // 加入房間的處理函數
+  const handleJoinRoom = (roomId) => {
+    if (!isNameSet) return;  // 如果名稱未設置，不執行操作
+    joinRoom(roomId);
+  };
+
+  // 離開房間的處理函數
+  const handleLeaveRoom = () => {
+    if (!isNameSet) return;  // 如果名稱未設置，不執行操作
+    leaveRoom();
+  };
+
+  // 開始遊戲的處理函數
+  const handleStartGame = () => {
+    if (!isNameSet) return;  // 如果名稱未設置，不執行操作
+    startGame();
   };
 
   // 顯示遊戲區域
@@ -88,7 +107,7 @@ const RoomManager = () => {
           
           <div className="mb-4">
             <h3 className="text-lg font-semibold">玩家列表</h3>
-            {currentRoom.playerArray.map((player, index) => (
+            {currentRoom.playerArray && currentRoom.playerArray.map((player, index) => (
               <div 
                 key={index} 
                 className="flex justify-between items-center p-2 border-b"
@@ -104,14 +123,14 @@ const RoomManager = () => {
 
           <div className="flex space-x-4">
             <button 
-              onClick={leaveRoom}
+              onClick={handleLeaveRoom}
               className="flex-1 bg-red-500 text-white p-2 rounded hover:bg-red-600"
             >
               離開房間
             </button>
-            {currentRoom.playerArray.length >= 2 && currentRoom.host === playerName && (
+            {currentRoom.playerArray && currentRoom.playerArray.length >= 2 && currentRoom.host === playerName && (
               <button 
-                onClick={startGame}
+                onClick={handleStartGame}
                 className="flex-1 bg-green-500 text-white p-2 rounded hover:bg-green-600"
               >
                 開始遊戲
@@ -164,7 +183,7 @@ const RoomManager = () => {
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-bold">{room.name}</h4>
                     <span className="text-sm text-gray-600">
-                      {room.playerArray.length}/4 人
+                      {room.playerArray ? room.playerArray.length : 0}/4 人
                     </span>
                   </div>
                   <div className="text-sm mb-2">
@@ -174,15 +193,15 @@ const RoomManager = () => {
                     狀態：{room.status}
                   </div>
                   <button 
-                    onClick={() => joinRoom(room.id)}
-                    disabled={room.playerArray.length >= 4 || room.status !== '等待中'}
+                    onClick={() => handleJoinRoom(room.id)}
+                    disabled={!room.playerArray || room.playerArray.length >= 4 || room.status !== '等待中'}
                     className={`w-full p-2 rounded ${
-                      room.playerArray.length >= 4 || room.status !== '等待中'
+                      !room.playerArray || room.playerArray.length >= 4 || room.status !== '等待中'
                         ? 'bg-gray-300 cursor-not-allowed' 
                         : 'bg-green-500 text-white hover:bg-green-600'
                     }`}
                   >
-                    {room.playerArray.length >= 4 
+                    {!room.playerArray || room.playerArray.length >= 4 
                       ? '房間已滿' 
                       : room.status !== '等待中'
                         ? '遊戲進行中'

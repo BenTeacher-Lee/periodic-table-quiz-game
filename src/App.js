@@ -1,4 +1,4 @@
-i// src/App.js
+// src/App.js
 import React, { useState } from 'react';
 import RoomManager from './components/RoomManager';
 import QuestionAdder from './components/QuestionAdder';
