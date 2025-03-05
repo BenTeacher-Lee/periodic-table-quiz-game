@@ -1,5 +1,5 @@
 // src/components/RoomManager.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
 
@@ -8,7 +8,6 @@ const RoomManager = ({ onManageQuestions }) => {
   const [roomName, setRoomName] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const scoreAnimationRef = useRef(null);
 
   // 在組件初始化時，從localStorage檢查是否有保存的暱稱
   useEffect(() => {
@@ -192,7 +191,8 @@ const RoomManager = ({ onManageQuestions }) => {
 
   // 房間列表
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto px-4 py-8">
+      {/* 頂部按鈕 */}
       <div className="absolute top-24 right-8">
         <button 
           onClick={onManageQuestions}
@@ -208,64 +208,64 @@ const RoomManager = ({ onManageQuestions }) => {
         </button>
       </div>
       
-      <div className="bg-white p-8 rounded-lg shadow-lg mt-8">
-        <h2 className="text-3xl font-bold mb-4">歡迎, {playerName}!</h2>
-        <p className="text-gray-600 mb-8">您可以創建新房間或加入現有房間</p>
-        
-        {/* 創建房間 */}
-        <div className="mb-12">
-          <h3 className="text-2xl font-bold mb-4">創建新房間</h3>
-          <div className="flex">
-            <input 
-              type="text" 
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="輸入房間名稱" 
-              className="flex-grow p-4 border rounded-l-lg text-xl"
-            />
-            <button 
-              onClick={handleCreateRoom}
-              className="bg-blue-500 text-white px-8 py-4 rounded-r-lg text-xl font-bold hover:bg-blue-600 transition"
-            >
-              創建
-            </button>
-          </div>
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold mb-2">歡迎, {playerName}!</h2>
+        <p className="text-gray-600">您可以創建新房間或加入現有房間</p>
+      </div>
+      
+      {/* 創建新房間 - 右對齊 */}
+      <div className="flex flex-col items-end mb-8">
+        <h3 className="text-2xl font-bold mb-3 text-right">創建新房間</h3>
+        <div className="flex w-full max-w-lg">
+          <input 
+            type="text" 
+            value={roomName}
+            onChange={(e) => setRoomName(e.target.value)}
+            placeholder="輸入房間名稱" 
+            className="flex-grow p-4 border rounded-l-lg text-xl"
+          />
+          <button 
+            onClick={handleCreateRoom}
+            className="bg-blue-500 text-white px-8 py-4 rounded-r-lg text-xl font-bold hover:bg-blue-600 transition"
+          >
+            創建
+          </button>
         </div>
+      </div>
 
-        {/* 房間列表框 */}
-        <div className="border-2 border-gray-200 rounded-lg p-6 bg-gray-50 shadow-md">
-          <h3 className="text-2xl font-bold mb-6 text-center">房間列表</h3>
-          
+      {/* 房間列表框 */}
+      <div>
+        <h3 className="text-2xl font-bold mb-4 text-right">房間列表</h3>
+        <div className="border-2 border-gray-200 rounded-lg overflow-hidden shadow-lg">
           <div className="flex">
             {/* 等待中房間 */}
-            <div className="flex-1 pr-4 border-r-2 border-gray-300">
-              <h4 className="text-xl font-bold mb-4 text-blue-600 text-center">等待中房間</h4>
+            <div className="w-1/2 p-6 bg-white border-r-2 border-gray-200">
+              <h4 className="text-xl font-bold mb-4 text-blue-600">等待中房間</h4>
               {waitingRooms.length === 0 ? (
-                <p className="text-center text-gray-500 text-lg">目前沒有等待中的房間</p>
+                <p className="text-gray-500 text-lg">目前沒有等待中的房間</p>
               ) : (
                 <div className="space-y-4">
                   {waitingRooms.map(room => (
                     <div 
                       key={room.id} 
-                      className="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition"
+                      className="border rounded-lg p-4 hover:shadow-md transition"
                     >
-                      <div className="flex justify-between items-center mb-3">
-                        <h5 className="text-xl font-bold">{room.name}</h5>
-                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-base font-semibold">
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="text-lg font-bold">{room.name}</h5>
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-semibold">
                           {room.playerArray ? room.playerArray.length : 0}/4 人
                         </span>
                       </div>
-                      <div className="text-gray-600 mb-3">
+                      <div className="text-sm text-gray-600 mb-2">
                         <p>房主：{room.host}</p>
-                        <p>狀態：等待中</p>
                       </div>
                       <button 
                         onClick={() => handleJoinRoom(room.id)}
                         disabled={!room.playerArray || room.playerArray.length >= 4}
-                        className={`w-full p-3 rounded-lg text-lg font-bold ${
+                        className={`w-full p-2 rounded-lg text-lg font-bold ${
                           !room.playerArray || room.playerArray.length >= 4
                             ? 'bg-gray-300 cursor-not-allowed' 
-                            : 'bg-green-500 text-white hover:bg-green-600 transition shadow-sm'
+                            : 'bg-green-500 text-white hover:bg-green-600 transition'
                         }`}
                       >
                         {!room.playerArray || room.playerArray.length >= 4 ? '房間已滿' : '加入'}
@@ -277,30 +277,29 @@ const RoomManager = ({ onManageQuestions }) => {
             </div>
 
             {/* 遊戲進行中房間 */}
-            <div className="flex-1 pl-4">
-              <h4 className="text-xl font-bold mb-4 text-green-600 text-center">遊戲進行中房間</h4>
+            <div className="w-1/2 p-6 bg-white">
+              <h4 className="text-xl font-bold mb-4 text-green-600">遊戲進行中房間</h4>
               {playingRooms.length === 0 ? (
-                <p className="text-center text-gray-500 text-lg">目前沒有進行中的房間</p>
+                <p className="text-gray-500 text-lg">目前沒有進行中的房間</p>
               ) : (
                 <div className="space-y-4">
                   {playingRooms.map(room => (
                     <div 
                       key={room.id} 
-                      className="border rounded-lg p-5 bg-gray-50 shadow-sm"
+                      className="border rounded-lg p-4 bg-gray-50"
                     >
-                      <div className="flex justify-between items-center mb-3">
-                        <h5 className="text-xl font-bold">{room.name}</h5>
-                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-base font-semibold">
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="text-lg font-bold">{room.name}</h5>
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-semibold">
                           {room.playerArray ? room.playerArray.length : 0}/4 人
                         </span>
                       </div>
-                      <div className="text-gray-600 mb-3">
+                      <div className="text-sm text-gray-600 mb-2">
                         <p>房主：{room.host}</p>
-                        <p>狀態：遊戲進行中</p>
                       </div>
                       <button 
                         disabled
-                        className="w-full p-3 rounded-lg text-lg font-bold bg-gray-300 cursor-not-allowed"
+                        className="w-full p-2 rounded-lg text-lg font-bold bg-gray-300 cursor-not-allowed"
                       >
                         遊戲進行中
                       </button>
