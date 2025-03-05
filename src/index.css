@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 以下是新添加的樣式 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600&display=swap');
 
 :root {
@@ -10,75 +11,13 @@
   --danger-color: #EF4444;
   --dark-color: #1F2937;
   --light-color: #F3F4F6;
-  --font-family: 'Noto Serif TC', serif; /* 使用思源宋體替代華康仿宋體W6 */
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: 'Noto Serif TC', serif;
   background-color: #EDF1FF;
   margin: 0;
   padding: 0;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 1.125rem;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #4338CA;
-  transform: translateY(-2px);
-}
-
-.btn-success {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-.btn-success:hover {
-  background-color: #059669;
-  transform: translateY(-2px);
-}
-
-.btn-danger {
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #DC2626;
-  transform: translateY(-2px);
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.card {
-  background-color: white;
-  border-radius: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-}
-
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--dark-color);
-  text-align: center;
 }
 
 /* 動畫效果 */
@@ -142,4 +81,15 @@ body {
   height: 10px;
   border-radius: 50%;
   animation: confetti 5s ease-in-out infinite;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* 標題居中 */
+h1, h2, h3 {
+  text-align: center;
 }
