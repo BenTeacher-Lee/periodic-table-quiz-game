@@ -208,12 +208,12 @@ const RoomManager = ({ onManageQuestions }) => {
         </button>
       </div>
       
-      <div className="bg-white p-8 rounded-lg shadow-lg mt-8 text-center">
+      <div className="bg-white p-8 rounded-lg shadow-lg mt-8">
         <h2 className="text-3xl font-bold mb-4">歡迎, {playerName}!</h2>
         <p className="text-gray-600 mb-8">您可以創建新房間或加入現有房間</p>
         
         {/* 創建房間 */}
-        <div className="mb-12 max-w-2xl mx-auto">
+        <div className="mb-12">
           <h3 className="text-2xl font-bold mb-4">創建新房間</h3>
           <div className="flex">
             <input 
@@ -233,13 +233,13 @@ const RoomManager = ({ onManageQuestions }) => {
         </div>
 
         {/* 房間列表框 */}
-        <div className="border-2 border-gray-200 rounded-lg p-6 shadow-md">
-          <h3 className="text-2xl font-bold mb-6">房間列表</h3>
+        <div className="border-2 border-gray-200 rounded-lg p-6 bg-gray-50 shadow-md">
+          <h3 className="text-2xl font-bold mb-6 text-center">房間列表</h3>
           
           <div className="flex">
             {/* 等待中房間 */}
             <div className="flex-1 pr-4 border-r-2 border-gray-300">
-              <h4 className="text-xl font-bold mb-4 text-blue-600">等待中房間</h4>
+              <h4 className="text-xl font-bold mb-4 text-blue-600 text-center">等待中房間</h4>
               {waitingRooms.length === 0 ? (
                 <p className="text-center text-gray-500 text-lg">目前沒有等待中的房間</p>
               ) : (
@@ -278,7 +278,7 @@ const RoomManager = ({ onManageQuestions }) => {
 
             {/* 遊戲進行中房間 */}
             <div className="flex-1 pl-4">
-              <h4 className="text-xl font-bold mb-4 text-green-600">遊戲進行中房間</h4>
+              <h4 className="text-xl font-bold mb-4 text-green-600 text-center">遊戲進行中房間</h4>
               {playingRooms.length === 0 ? (
                 <p className="text-center text-gray-500 text-lg">目前沒有進行中的房間</p>
               ) : (
