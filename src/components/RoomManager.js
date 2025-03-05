@@ -311,15 +311,44 @@ const RoomManager = ({ onManageQuestions }) => {
         </button>
       </div>
       
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>歡迎, {playerName}!</h2>
-        <p style={{ color: '#6B7280' }}>您可以創建新房間或加入現有房間</p>
+      {/* 歡迎信息區域 - 左對齊 */}
+      <div style={{ 
+        marginBottom: '1.5rem',
+        textAlign: 'left'
+      }}>
+        <h2 style={{ 
+          fontSize: '1.875rem', 
+          fontWeight: 'bold',
+          textAlign: 'left'
+        }}>
+          歡迎, {playerName}!
+        </h2>
+        <p style={{ 
+          color: '#6B7280',
+          textAlign: 'left'
+        }}>
+          您可以創建新房間或加入現有房間
+        </p>
       </div>
       
-      {/* 創建新房間 - 右對齊 */}
-      <div style={{ textAlign: 'right', marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>創建新房間</h3>
-        <div style={{ display: 'inline-flex', maxWidth: '500px', width: '100%' }}>
+      {/* 創建新房間區域 - 左對齊 */}
+      <div style={{ 
+        textAlign: 'left',
+        marginBottom: '2rem' 
+      }}>
+        <h3 style={{ 
+          fontSize: '1.5rem', 
+          fontWeight: 'bold', 
+          marginBottom: '0.5rem',
+          textAlign: 'left'
+        }}>
+          創建新房間
+        </h3>
+        <div style={{ 
+          display: 'flex',
+          maxWidth: '500px', 
+          width: '100%' 
+        }}>
           <input 
             type="text" 
             value={roomName}
@@ -354,7 +383,14 @@ const RoomManager = ({ onManageQuestions }) => {
 
       {/* 房間列表 */}
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'right' }}>房間列表</h3>
+        <h3 style={{ 
+          fontSize: '1.5rem', 
+          fontWeight: 'bold', 
+          marginBottom: '1rem', 
+          textAlign: 'right' 
+        }}>
+          房間列表
+        </h3>
         <div style={{ 
           border: '2px solid #E5E7EB', 
           borderRadius: '0.5rem', 
