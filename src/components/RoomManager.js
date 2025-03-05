@@ -1,13 +1,14 @@
 // src/components/RoomManager.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
 
-const RoomManager = () => {
+const RoomManager = ({ onManageQuestions }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const scoreAnimationRef = useRef(null);
 
   // 在組件初始化時，從localStorage檢查是否有保存的暱稱
   useEffect(() => {
@@ -18,7 +19,7 @@ const RoomManager = () => {
     }
   }, []);
 
-  // 使用自定義Hook獲取房間數據
+  // 使用空字串作為預設值，而不是在條件語句中使用 Hook
   const { 
     rooms, 
     currentRoom, 
@@ -88,11 +89,6 @@ const RoomManager = () => {
     }
   };
 
-  // 前往題目管理頁面
-  const goToQuestionManager = () => {
-    window.location.href = '/questions';
-  };
-
   // 顯示遊戲區域
   if (isNameSet && currentRoom && currentRoom.status === '遊戲中') {
     return <GameArea roomId={currentRoom.id} playerName={playerName} onGameEnd={handleGameEnd} />;
@@ -102,8 +98,8 @@ const RoomManager = () => {
   if (!isNameSet) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-blue-50">
-        <div className="card w-full max-w-md">
-          <h2 className="section-title">設定暱稱</h2>
+        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+          <h2 className="text-2xl font-bold mb-4 text-center">設定暱稱</h2>
           <input 
             type="text" 
             value={playerName}
@@ -113,7 +109,7 @@ const RoomManager = () => {
           />
           <button 
             onClick={validatePlayerName}
-            className="btn btn-success w-full"
+            className="w-full bg-green-500 text-white p-3 rounded-lg text-lg font-bold hover:bg-green-600 transition shadow-md"
           >
             確認暱稱
           </button>
@@ -134,29 +130,29 @@ const RoomManager = () => {
   // 在房間中但未開始遊戲
   if (currentRoom) {
     return (
-      <div className="container">
+      <div className="container mx-auto p-4">
         <div className="flex justify-end mb-4">
           <button 
-            onClick={goToQuestionManager}
-            className="btn btn-primary mr-2"
+            onClick={onManageQuestions}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold mr-2 shadow-md hover:bg-blue-600 transition"
           >
             題目管理
           </button>
           <button 
             onClick={handleLogout}
-            className="btn btn-danger"
+            className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold shadow-md hover:bg-red-600 transition"
           >
             登出
           </button>
         </div>
         
-        <div className="card">
+        <div className="bg-white p-6 rounded-lg shadow-lg">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold">房間：{currentRoom.name}</h2>
           </div>
           
           <div className="mb-6">
-            <h3 className="text-xl font-semibold mb-4">玩家列表</h3>
+            <h3 className="text-xl font-bold mb-4">玩家列表</h3>
             <div className="space-y-3">
               {currentRoom.playerArray && currentRoom.playerArray.map((player, index) => (
                 <div 
@@ -165,7 +161,7 @@ const RoomManager = () => {
                 >
                   <span className="text-xl">
                     {player.name} 
-                    {player.name === currentRoom.host && <span className="ml-2 text-blue-500">(房主)</span>}
+                    {player.name === currentRoom.host && <span className="ml-2 text-blue-500 font-bold">(房主)</span>}
                   </span>
                   <span className="text-xl font-bold">分數：{player.score}</span>
                 </div>
@@ -176,14 +172,14 @@ const RoomManager = () => {
           <div className="flex space-x-4">
             <button 
               onClick={handleLeaveRoom}
-              className="btn btn-danger flex-1"
+              className="flex-1 bg-red-500 text-white p-3 rounded-lg text-lg font-bold hover:bg-red-600 transition shadow-md"
             >
               離開房間
             </button>
             {currentRoom.playerArray && currentRoom.playerArray.length >= 2 && currentRoom.host === playerName && (
               <button 
                 onClick={handleStartGame}
-                className="btn btn-success flex-1"
+                className="flex-1 bg-green-500 text-white p-3 rounded-lg text-lg font-bold hover:bg-green-600 transition shadow-md"
               >
                 開始遊戲
               </button>
@@ -196,23 +192,23 @@ const RoomManager = () => {
 
   // 房間列表
   return (
-    <div className="container">
+    <div className="container mx-auto p-4">
       <div className="flex justify-end mb-4">
         <button 
-          onClick={goToQuestionManager}
-          className="btn btn-primary mr-2"
+          onClick={onManageQuestions}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold mr-2 shadow-md hover:bg-blue-600 transition"
         >
           題目管理
         </button>
         <button 
           onClick={handleLogout}
-          className="btn btn-danger"
+          className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold shadow-md hover:bg-red-600 transition"
         >
           登出
         </button>
       </div>
       
-      <div className="card">
+      <div className="bg-white p-6 rounded-lg shadow-lg">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold">歡迎, {playerName}!</h2>
           <p className="text-gray-600 mt-2">您可以創建新房間或加入現有房間</p>
@@ -220,7 +216,7 @@ const RoomManager = () => {
         
         {/* 創建房間 */}
         <div className="mb-10">
-          <h3 className="section-title">創建新房間</h3>
+          <h3 className="text-2xl font-bold mb-4 text-center">創建新房間</h3>
           <div className="flex">
             <input 
               type="text" 
@@ -231,7 +227,7 @@ const RoomManager = () => {
             />
             <button 
               onClick={handleCreateRoom}
-              className="btn btn-primary rounded-l-none"
+              className="bg-blue-500 text-white px-6 py-3 rounded-r-lg text-lg font-bold hover:bg-blue-600 transition"
             >
               創建
             </button>
@@ -240,7 +236,7 @@ const RoomManager = () => {
 
         {/* 等待中房間列表 */}
         <div className="mb-8">
-          <h3 className="section-title">等待中房間</h3>
+          <h3 className="text-2xl font-bold mb-4 text-center">等待中房間</h3>
           {waitingRooms.length === 0 ? (
             <p className="text-center text-gray-500 text-lg">目前沒有等待中的房間</p>
           ) : (
@@ -263,10 +259,10 @@ const RoomManager = () => {
                   <button 
                     onClick={() => handleJoinRoom(room.id)}
                     disabled={!room.playerArray || room.playerArray.length >= 4}
-                    className={`w-full p-3 rounded-lg text-lg font-semibold ${
+                    className={`w-full p-3 rounded-lg text-lg font-bold ${
                       !room.playerArray || room.playerArray.length >= 4
                         ? 'bg-gray-300 cursor-not-allowed' 
-                        : 'btn-success'
+                        : 'bg-green-500 text-white hover:bg-green-600 transition shadow-md'
                     }`}
                   >
                     {!room.playerArray || room.playerArray.length >= 4 ? '房間已滿' : '加入'}
@@ -279,7 +275,7 @@ const RoomManager = () => {
 
         {/* 遊戲中房間列表 */}
         <div>
-          <h3 className="section-title">遊戲進行中房間</h3>
+          <h3 className="text-2xl font-bold mb-4 text-center">遊戲進行中房間</h3>
           {playingRooms.length === 0 ? (
             <p className="text-center text-gray-500 text-lg">目前沒有進行中的房間</p>
           ) : (
@@ -301,7 +297,7 @@ const RoomManager = () => {
                   </div>
                   <button 
                     disabled
-                    className="w-full p-3 rounded-lg text-lg font-semibold bg-gray-300 cursor-not-allowed"
+                    className="w-full p-3 rounded-lg text-lg font-bold bg-gray-300 cursor-not-allowed"
                   >
                     遊戲進行中
                   </button>
