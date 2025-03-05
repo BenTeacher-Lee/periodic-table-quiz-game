@@ -45,6 +45,64 @@ export const useGame = (roomId, playerName) => {
     update(roomRef, { currentPlayer: playerName });
   };
 
+  // 從Firebase數據庫獲取隨機題目
+  const getRandomQuestion = async () => {
+    const questionsRef = ref(database, 'questions');
+    try {
+      // 獲取所有題目
+      const snapshot = await get(questionsRef);
+      const data = snapshot.val();
+      
+      if (!data) {
+        // 如果沒有找到題目，使用默認題目
+        const defaultQuestion = {
+          question: '氫元素在元素週期表中的原子序數為多少？',
+          options: ['1', '2', '3', '4'],
+          correctAnswer: 0
+        };
+        
+        update(ref(database, `rooms/${roomId}`), {
+          currentQuestion: defaultQuestion,
+          currentPlayer: null
+        });
+        return;
+      }
+      
+      // 將題目對象轉換為數組
+      const questionsArray = Object.keys(data).map(key => ({
+        id: key,
+        ...data[key]
+      }));
+      
+      // 隨機選擇一道題目
+      const randomIndex = Math.floor(Math.random() * questionsArray.length);
+      const randomQuestion = questionsArray[randomIndex];
+      
+      // 更新房間的當前題目
+      update(ref(database, `rooms/${roomId}`), {
+        currentQuestion: {
+          question: randomQuestion.question,
+          options: randomQuestion.options,
+          correctAnswer: randomQuestion.correctAnswer
+        },
+        currentPlayer: null
+      });
+    } catch (error) {
+      console.error("Error getting random question:", error);
+      // 發生錯誤時使用默認題目
+      const defaultQuestion = {
+        question: '氫元素在元素週期表中的原子序數為多少？',
+        options: ['1', '2', '3', '4'],
+        correctAnswer: 0
+      };
+      
+      update(ref(database, `rooms/${roomId}`), {
+        currentQuestion: defaultQuestion,
+        currentPlayer: null
+      });
+    }
+  };
+
   // 檢查答案
   const checkAnswer = async (selectedOption) => {
     if (!roomId || currentPlayer !== playerName || !currentQuestion) return;
@@ -65,8 +123,8 @@ export const useGame = (roomId, playerName) => {
           winner: playerName
         });
       } else {
-        // 隨機選擇下一個問題
-        getRandomQuestion();
+        // 隨機選擇下一個題目
+        await getRandomQuestion();  // 使用await確保題目加載完成
       }
     } else {
       // 答錯，重置搶答者
@@ -74,49 +132,14 @@ export const useGame = (roomId, playerName) => {
     }
   };
 
-  // 從預定義題庫中獲取隨機題目
-  const getRandomQuestion = () => {
-    // 這裡使用預設題目，實際應用中應該從數據庫獲取
-    const questions = [
-      {
-        question: '氫元素在元素週期表中的原子序數為多少？',
-        options: ['1', '2', '3', '4'],
-        correctAnswer: 0
-      },
-      {
-        question: '元素週期表中哪個元素的符號是O？',
-        options: ['鋰', '金', '氧', '鐵'],
-        correctAnswer: 2
-      },
-      {
-        question: '元素週期表中，鈉(Na)的原子序數是多少？',
-        options: ['7', '11', '19', '23'],
-        correctAnswer: 1
-      }
-    ];
-    
-    const randomIndex = Math.floor(Math.random() * questions.length);
-    const randomQuestion = questions[randomIndex];
-    
-    update(ref(database, `rooms/${roomId}`), {
-      currentQuestion: randomQuestion,
-      currentPlayer: null
-    });
-  };
-
   // 重新開始遊戲
-  const restartGame = () => {
+  const restartGame = async () => {
     if (!roomId) return;
     
     update(ref(database, `rooms/${roomId}`), {
       status: '遊戲中',
       winner: null,
-      currentPlayer: null,
-      currentQuestion: {
-        question: '氫元素在元素週期表中的原子序數為多少？',
-        options: ['1', '2', '3', '4'],
-        correctAnswer: 0
-      }
+      currentPlayer: null
     });
     
     // 重置所有玩家分數
@@ -125,6 +148,9 @@ export const useGame = (roomId, playerName) => {
         score: 0
       });
     });
+    
+    // 獲取新題目
+    await getRandomQuestion();
   };
 
   // 結束遊戲
