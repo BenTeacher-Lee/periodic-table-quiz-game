@@ -387,7 +387,7 @@ const RoomManager = ({ onManageQuestions }) => {
           fontSize: '1.5rem', 
           fontWeight: 'bold', 
           marginBottom: '1rem', 
-          textAlign: 'right' 
+          textAlign: 'center' 
         }}>
           房間列表
         </h3>
