@@ -83,31 +83,93 @@ const QuestionAdder = ({ onBack }) => {
   // 密碼輸入畫面
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] bg-blue-50 p-4">
-        <div className="absolute top-24 right-8">
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh', 
+        backgroundColor: '#EFF6FF',
+        padding: '1rem'
+      }}>
+        <div style={{ 
+          position: 'absolute', 
+          top: '1rem', 
+          left: '1rem'
+        }}>
           <button 
             onClick={onBack}
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg text-xl font-bold shadow-md hover:bg-blue-600 transition"
+            style={{ 
+              backgroundColor: '#3B82F6', 
+              color: 'white',
+              padding: '1rem 2rem',  // 增加按鈕尺寸
+              fontSize: '1.25rem',   // 增加字體大小
+              fontWeight: 'bold',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
           >
             返回遊戲大廳
           </button>
         </div>
         
-        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md mt-8">
-          <h2 className="text-2xl font-bold mb-4 text-center">管理員登入</h2>
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="請輸入管理員密碼" 
-            className="w-full p-4 mb-4 border rounded-lg text-lg"
-          />
-          <button 
-            onClick={handlePasswordSubmit}
-            className="w-full bg-blue-500 text-white p-4 rounded-lg text-xl font-bold hover:bg-blue-600 transition shadow-md"
-          >
-            確認
-          </button>
+        <div style={{ 
+          width: '100%',
+          maxWidth: '500px',  // 增加最大寬度
+          backgroundColor: 'white', 
+          padding: '2rem', 
+          borderRadius: '0.5rem', 
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          margin: '4rem auto 0'  // 增加上邊距
+        }}>
+          <h2 style={{ 
+            fontSize: '2rem',   // 增加標題字體大小
+            fontWeight: 'bold', 
+            marginBottom: '1.5rem', 
+            textAlign: 'center' 
+          }}>
+            管理員登入
+          </h2>
+          
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%'
+          }}>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="請輸入管理員密碼" 
+              style={{ 
+                width: '100%', 
+                padding: '1rem', 
+                marginBottom: '1.5rem', 
+                border: '1px solid #D1D5DB', 
+                borderRadius: '0.5rem',
+                fontSize: '1.25rem',
+                textAlign: 'center'  // 輸入文字居中
+              }}
+            />
+            <button 
+              onClick={handlePasswordSubmit}
+              style={{ 
+                width: '100%', 
+                backgroundColor: '#3B82F6', 
+                color: 'white', 
+                padding: '1rem',  // 增加大小
+                borderRadius: '0.5rem',
+                fontSize: '1.25rem', // 增加字體大小
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              確認
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -115,57 +177,148 @@ const QuestionAdder = ({ onBack }) => {
 
   // 題目新增畫面
   return (
-    <div className="container mx-auto p-4">
-      <div className="absolute top-24 right-8">
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+      <div style={{ 
+        position: 'absolute', 
+        top: '1rem', 
+        left: '1rem',
+        zIndex: 10
+      }}>
         <button 
           onClick={onBack}
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg text-xl font-bold shadow-md hover:bg-blue-600 transition mr-2"
+          style={{ 
+            backgroundColor: '#3B82F6', 
+            color: 'white',
+            padding: '1rem 2rem',  // 增加按鈕尺寸
+            fontSize: '1.25rem',   // 增加字體大小
+            fontWeight: 'bold',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}
         >
           返回遊戲大廳
         </button>
+      </div>
+      
+      <div style={{ 
+        position: 'absolute', 
+        top: '1rem', 
+        right: '1rem' 
+      }}>
         <button 
           onClick={() => setIsAuthenticated(false)}
-          className="bg-red-500 text-white px-6 py-3 rounded-lg text-xl font-bold shadow-md hover:bg-red-600 transition"
+          style={{ 
+            backgroundColor: '#EF4444', 
+            color: 'white',
+            padding: '1rem 2rem',  // 增加按鈕尺寸
+            fontSize: '1.25rem',   // 增加字體大小
+            fontWeight: 'bold',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}
         >
           登出
         </button>
       </div>
       
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-3xl mx-auto mt-8">
-        <h2 className="text-3xl font-bold mb-8 text-center">新增元素週期表題目</h2>
+      <div style={{ 
+        backgroundColor: 'white', 
+        padding: '2rem', 
+        borderRadius: '0.5rem', 
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        marginTop: '5rem',
+        maxWidth: '800px',
+        margin: '5rem auto 0'
+      }}>
+        <h2 style={{ 
+          fontSize: '2rem', 
+          fontWeight: 'bold', 
+          marginBottom: '2rem', 
+          textAlign: 'center' 
+        }}>
+          新增元素週期表題目
+        </h2>
         
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2 text-xl font-semibold">題目</label>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '0.5rem', 
+            fontSize: '1.25rem', 
+            fontWeight: 'bold' 
+          }}>
+            題目
+          </label>
           <input 
             type="text" 
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="請輸入題目" 
-            className="w-full p-4 border rounded-lg text-lg"
+            style={{ 
+              width: '100%', 
+              padding: '1rem', 
+              border: '1px solid #D1D5DB', 
+              borderRadius: '0.5rem',
+              fontSize: '1.125rem'
+            }}
           />
         </div>
 
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-2 text-xl font-semibold">選項</label>
+        <div style={{ marginBottom: '2rem' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '1rem', 
+            fontSize: '1.25rem', 
+            fontWeight: 'bold' 
+          }}>
+            選項
+          </label>
           {options.map((opt, index) => (
-            <div key={index} className="flex items-center mb-3">
-              <span className="mr-3 text-xl font-bold">{index + 1}.</span>
+            <div key={index} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              marginBottom: '1rem' 
+            }}>
+              <span style={{ 
+                marginRight: '1rem', 
+                fontSize: '1.25rem', 
+                fontWeight: 'bold' 
+              }}>
+                {index + 1}.
+              </span>
               <input 
                 type="text" 
                 value={opt}
                 onChange={(e) => handleOptionChange(index, e.target.value)}
                 placeholder={`輸入選項 ${index + 1}`}
-                className="flex-grow p-4 border rounded-lg text-lg mr-3"
+                style={{ 
+                  flex: 1, 
+                  padding: '1rem', 
+                  border: '1px solid #D1D5DB', 
+                  borderRadius: '0.5rem',
+                  fontSize: '1.125rem',
+                  marginRight: '1rem'
+                }}
               />
-              <label className="flex items-center">
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                fontSize: '1.125rem',
+                fontWeight: 'bold'
+              }}>
                 <input 
                   type="radio" 
                   name="correctAnswer"
                   checked={correctAnswer === index}
                   onChange={() => setCorrectAnswer(index)}
-                  className="w-6 h-6 mr-2"
+                  style={{ 
+                    width: '1.25rem', 
+                    height: '1.25rem', 
+                    marginRight: '0.5rem' 
+                  }}
                 />
-                <span className="text-xl font-semibold">正確</span>
+                正確
               </label>
             </div>
           ))}
@@ -173,24 +326,77 @@ const QuestionAdder = ({ onBack }) => {
 
         <button 
           onClick={addQuestion}
-          className="w-full bg-green-500 text-white p-4 rounded-lg text-xl font-bold hover:bg-green-600 transition shadow-md mb-6"
+          style={{ 
+            width: '100%', 
+            backgroundColor: '#10B981', 
+            color: 'white', 
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            fontSize: '1.25rem',
+            fontWeight: 'bold',
+            marginBottom: '2rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}
         >
           新增題目
         </button>
 
-        <div className="mt-8">
-          <h3 className="text-2xl font-bold mb-4 text-center">已新增題目</h3>
+        <div>
+          <h3 style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 'bold', 
+            marginBottom: '1rem',
+            textAlign: 'center'
+          }}>
+            已新增題目
+          </h3>
           {questions.length === 0 ? (
-            <p className="text-gray-500 text-center text-lg">尚未新增題目</p>
+            <p style={{ 
+              textAlign: 'center', 
+              color: '#6B7280',
+              fontSize: '1.125rem'
+            }}>
+              尚未新增題目
+            </p>
           ) : (
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div style={{ 
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+              maxHeight: '400px',
+              overflowY: 'auto',
+              padding: '0.5rem'
+            }}>
               {questions.map((q, index) => (
-                <div key={q.id} className="p-5 border rounded-lg bg-gray-50 relative shadow-sm">
-                  <div className="pr-8">
-                    <div className="font-bold text-lg mb-2">題目 {index + 1}：{q.question}</div>
-                    <div className="mb-2">
+                <div 
+                  key={q.id} 
+                  style={{ 
+                    position: 'relative',
+                    padding: '1.25rem', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '0.5rem',
+                    backgroundColor: '#F9FAFB'
+                  }}
+                >
+                  <div style={{ paddingRight: '2rem' }}>
+                    <div style={{ 
+                      fontSize: '1.125rem', 
+                      fontWeight: 'bold',
+                      marginBottom: '0.75rem'
+                    }}>
+                      題目 {index + 1}：{q.question}
+                    </div>
+                    <div>
                       {q.options.map((option, optIndex) => (
-                        <div key={optIndex} className={`${optIndex === q.correctAnswer ? 'text-green-600 font-bold' : 'text-gray-700'}`}>
+                        <div 
+                          key={optIndex} 
+                          style={{ 
+                            color: optIndex === q.correctAnswer ? '#059669' : '#1F2937',
+                            fontWeight: optIndex === q.correctAnswer ? 'bold' : 'normal',
+                            marginBottom: '0.25rem'
+                          }}
+                        >
                           {optIndex + 1}. {option} {optIndex === q.correctAnswer && '✓'}
                         </div>
                       ))}
@@ -198,7 +404,17 @@ const QuestionAdder = ({ onBack }) => {
                   </div>
                   <button 
                     onClick={() => deleteQuestion(q.id)}
-                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xl"
+                    style={{ 
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#EF4444',
+                      fontSize: '1.25rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
                   >
                     ✕
                   </button>
