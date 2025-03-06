@@ -1,13 +1,31 @@
 // src/hooks/useGame.js
 import { useState, useEffect, useCallback } from 'react';
-import { getFirestore, collection, doc, onSnapshot, updateDoc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
-import { getFirebaseApp } from '../firebase'; // 假設您的 Firebase 配置在這個文件中
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  onSnapshot, 
+  updateDoc, 
+  getDoc, 
+  getDocs, 
+  writeBatch 
+} from 'firebase/firestore';
+
+// 使用已經初始化的 Firebase 應用
+// 注意：這裡假設 Firebase 已經在其他地方初始化
+let db;
+try {
+  // 從全局獲取
+  const app = initializeApp();
+  db = getFirestore(app);
+} catch (error) {
+  console.error("Firebase 已經初始化或初始化失敗:", error);
+  // 嘗試獲取已初始化的實例
+  db = getFirestore();
+}
 
 export const useGame = (roomId, playerName) => {
-  // Firebase 實例
-  const app = getFirebaseApp();
-  const db = getFirestore(app);
-  
   // 遊戲狀態
   const [gameStatus, setGameStatus] = useState('等待中');
   const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -42,7 +60,7 @@ export const useGame = (roomId, playerName) => {
     });
     
     return () => unsubscribe();
-  }, [roomId, db]);
+  }, [roomId]);
   
   // 監聽玩家狀態
   useEffect(() => {
@@ -60,17 +78,17 @@ export const useGame = (roomId, playerName) => {
       // 檢查是否有玩家達到勝利條件 (20分)
       const winningPlayer = playersData.find(player => player.score >= 20);
       if (winningPlayer && gameStatus !== '遊戲結束') {
-        // 關鍵改進：確保設置獲勝者並更新遊戲狀態
+        // 確保設置獲勝者並更新遊戲狀態
         const roomRef = doc(db, 'rooms', roomId);
         updateDoc(roomRef, {
           status: '遊戲結束',
           winner: winningPlayer.name
-        });
+        }).catch(error => console.error('更新遊戲狀態錯誤:', error));
       }
     });
     
     return () => unsubscribe();
-  }, [roomId, db, gameStatus]);
+  }, [roomId, gameStatus]);
   
   // 搶答功能
   const quickAnswer = useCallback(async () => {
@@ -84,7 +102,7 @@ export const useGame = (roomId, playerName) => {
     } catch (error) {
       console.error('搶答時發生錯誤:', error);
     }
-  }, [roomId, playerName, currentPlayer, db]);
+  }, [roomId, playerName, currentPlayer]);
   
   // 檢查答案
   const checkAnswer = useCallback(async (selectedIndex) => {
@@ -105,14 +123,15 @@ export const useGame = (roomId, playerName) => {
         
         await updateDoc(playerRef, { score: newScore });
         
-        // 改進：檢查是否達到勝利條件
+        // 檢查是否達到勝利條件
         if (newScore >= 20) {
-          // 關鍵：確保設置遊戲狀態為結束，並設置獲勝者
+          // 確保設置遊戲狀態為結束，並設置獲勝者
           await updateDoc(roomRef, {
             status: '遊戲結束',
             winner: playerName,
             currentPlayer: null
           });
+          console.log(`玩家 ${playerName} 達到勝利條件，得分: ${newScore}`);
         } else {
           // 進入下一題
           const nextQuestionIndex = questionIndex + 1;
@@ -138,7 +157,7 @@ export const useGame = (roomId, playerName) => {
     } catch (error) {
       console.error('檢查答案時發生錯誤:', error);
     }
-  }, [roomId, playerName, currentPlayer, currentQuestion, questionIndex, questions, db]);
+  }, [roomId, playerName, currentPlayer, currentQuestion, questionIndex, questions]);
   
   // 重新開始遊戲
   const restartGame = useCallback(async () => {
@@ -167,7 +186,7 @@ export const useGame = (roomId, playerName) => {
     } catch (error) {
       console.error('重新開始遊戲時發生錯誤:', error);
     }
-  }, [roomId, db]);
+  }, [roomId]);
   
   // 結束遊戲
   const endGame = useCallback(async () => {
@@ -183,7 +202,7 @@ export const useGame = (roomId, playerName) => {
     } catch (error) {
       console.error('結束遊戲時發生錯誤:', error);
     }
-  }, [roomId, db]);
+  }, [roomId]);
   
   return {
     gameStatus,
