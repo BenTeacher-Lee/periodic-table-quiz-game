@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 修復勝利畫面問題的版本
+// src/hooks/useGame.js - 修正版本
 import { useState, useEffect } from 'react';
 import { ref, onValue, update, get, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -228,18 +228,6 @@ export const useGame = (roomId, playerName) => {
     }
   };
 
-  // 手動設置遊戲勝利狀態 (用於測試)
-  const forceGameVictory = (winnerName = playerName) => {
-    if (!roomId) return;
-    
-    console.log("強制設置遊戲勝利狀態");
-    update(ref(database, `rooms/${roomId}`), { 
-      status: '遊戲結束',
-      winner: winnerName,
-      lastActivity: serverTimestamp()
-    });
-  };
-
   // 重新開始遊戲
   const restartGame = async () => {
     if (!roomId) return;
@@ -296,8 +284,7 @@ export const useGame = (roomId, playerName) => {
     checkAnswer,
     restartGame,
     endGame,
-    showingAnswer,
-    forceGameVictory // 新增測試函數
+    showingAnswer
   };
 };
 
