@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 優化後的版本，解決題目重複問題
+// src/hooks/useGame.js - 修復勝利畫面問題
 import { useState, useEffect } from 'react';
 import { ref, onValue, update, get, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -10,6 +10,7 @@ export const useGame = (roomId, playerName) => {
   const [winner, setWinner] = useState(null);
   const [players, setPlayers] = useState([]);
   const [usedQuestions, setUsedQuestions] = useState([]);
+  const [showingAnswer, setShowingAnswer] = useState(false); // 新增：是否正在展示答案
 
   // 監聽遊戲狀態
   useEffect(() => {
@@ -20,10 +21,12 @@ export const useGame = (roomId, playerName) => {
       const data = snapshot.val();
       if (!data) return;
       
+      // 更新界面狀態
       setCurrentQuestion(data.currentQuestion || null);
       setCurrentPlayer(data.currentPlayer || null);
       setGameStatus(data.status || 'waiting');
       setWinner(data.winner || null);
+      setShowingAnswer(data.showingAnswer || false);
       
       // 同步已使用過的題目
       setUsedQuestions(data.usedQuestions || []);
@@ -36,6 +39,24 @@ export const useGame = (roomId, playerName) => {
         }));
         setPlayers(playerList);
       }
+      
+      // 添加額外檢查：確保當有玩家達到20分時遊戲狀態為"遊戲結束"
+      if (data.players) {
+        const playerScores = Object.entries(data.players).map(([name, data]) => ({
+          name,
+          score: data.score
+        }));
+        
+        const winningPlayer = playerScores.find(player => player.score >= 20);
+        if (winningPlayer && data.status !== '遊戲結束') {
+          // 如果有玩家達到20分但遊戲狀態不是"遊戲結束"，則更新遊戲狀態
+          update(roomRef, {
+            status: '遊戲結束',
+            winner: winningPlayer.name,
+            lastActivity: serverTimestamp()
+          });
+        }
+      }
     });
 
     return () => unsubscribe();
@@ -43,12 +64,12 @@ export const useGame = (roomId, playerName) => {
 
   // 搶答
   const quickAnswer = () => {
-    if (!roomId || currentPlayer) return;
+    if (!roomId || currentPlayer || showingAnswer) return; // 防止在展示答案時搶答
     
     const roomRef = ref(database, `rooms/${roomId}`);
     update(roomRef, { 
       currentPlayer: playerName,
-      lastActivity: serverTimestamp() // 更新活動時間
+      lastActivity: serverTimestamp()
     });
   };
 
@@ -71,7 +92,8 @@ export const useGame = (roomId, playerName) => {
         update(ref(database, `rooms/${roomId}`), {
           currentQuestion: defaultQuestion,
           currentPlayer: null,
-          lastActivity: serverTimestamp() // 更新活動時間
+          showingAnswer: false,
+          lastActivity: serverTimestamp()
         });
         return;
       }
@@ -110,7 +132,8 @@ export const useGame = (roomId, playerName) => {
           },
           usedQuestions: [randomQuestion.id],
           currentPlayer: null,
-          lastActivity: serverTimestamp() // 更新活動時間
+          showingAnswer: false,
+          lastActivity: serverTimestamp()
         });
       } else {
         // 從未使用的題目中隨機選擇
@@ -126,7 +149,8 @@ export const useGame = (roomId, playerName) => {
           },
           usedQuestions: [...currentUsedQuestions, randomQuestion.id],
           currentPlayer: null,
-          lastActivity: serverTimestamp() // 更新活動時間
+          showingAnswer: false,
+          lastActivity: serverTimestamp()
         });
       }
     } catch (error) {
@@ -141,7 +165,8 @@ export const useGame = (roomId, playerName) => {
       update(ref(database, `rooms/${roomId}`), {
         currentQuestion: defaultQuestion,
         currentPlayer: null,
-        lastActivity: serverTimestamp() // 更新活動時間
+        showingAnswer: false,
+        lastActivity: serverTimestamp()
       });
     }
   };
@@ -162,24 +187,41 @@ export const useGame = (roomId, playerName) => {
       const currentScore = (snapshot.val() && snapshot.val().score) || 0;
       const newScore = currentScore + 1;
       
+      // 先更新分數
       update(playerRef, { score: newScore });
+      
+      // 設置顯示答案狀態
+      update(ref(database, `rooms/${roomId}`), {
+        showingAnswer: true,
+        lastActivity: serverTimestamp()
+      });
       
       // 檢查是否獲勝
       if (newScore >= 20) {
+        // 立即設置遊戲結束狀態
         update(ref(database, `rooms/${roomId}`), { 
           status: '遊戲結束',
           winner: playerName,
-          lastActivity: serverTimestamp() // 更新活動時間
+          lastActivity: serverTimestamp()
         });
       } else {
-        // 隨機選擇下一個不重複的題目
-        await getRandomQuestion();
+        // 延遲2秒後獲取新題目
+        setTimeout(async () => {
+          // 再次檢查房間狀態，確保遊戲仍在進行中
+          const currentRoomRef = ref(database, `rooms/${roomId}`);
+          const currentRoomSnapshot = await get(currentRoomRef);
+          const currentRoomData = currentRoomSnapshot.val();
+          
+          if (currentRoomData && currentRoomData.status === '遊戲中') {
+            await getRandomQuestion();
+          }
+        }, 2000);
       }
     } else {
       // 答錯，重置搶答者
       update(ref(database, `rooms/${roomId}`), { 
         currentPlayer: null,
-        lastActivity: serverTimestamp() // 更新活動時間
+        lastActivity: serverTimestamp()
       });
     }
   };
@@ -193,7 +235,8 @@ export const useGame = (roomId, playerName) => {
       winner: null,
       currentPlayer: null,
       usedQuestions: [], // 重置已使用的題目
-      lastActivity: serverTimestamp() // 更新活動時間
+      showingAnswer: false,
+      lastActivity: serverTimestamp()
     });
     
     // 重置所有玩家分數
@@ -217,7 +260,8 @@ export const useGame = (roomId, playerName) => {
       currentPlayer: null,
       currentQuestion: null,
       usedQuestions: [], // 重置已使用的題目
-      lastActivity: serverTimestamp() // 更新活動時間
+      showingAnswer: false,
+      lastActivity: serverTimestamp()
     });
     
     // 重置所有玩家分數
@@ -237,7 +281,8 @@ export const useGame = (roomId, playerName) => {
     quickAnswer,
     checkAnswer,
     restartGame,
-    endGame
+    endGame,
+    showingAnswer // 暴露答案顯示狀態
   };
 };
 
