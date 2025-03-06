@@ -387,6 +387,7 @@ export const useGame = (roomId, playerName) => {
     currentPlayer,
     winner,
     players,
+    questions,
     quickAnswer,
     checkAnswer,
     restartGame,
