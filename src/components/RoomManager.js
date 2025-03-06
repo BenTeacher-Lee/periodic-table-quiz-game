@@ -249,7 +249,7 @@ const RoomManager = ({ onManageQuestions }) => {
             >
               離開房間
             </button>
-            {currentRoom.playerArray && currentRoom.playerArray.length >= 2 && currentRoom.host === playerName && (
+            {currentRoom.host === playerName && (
               <button 
                 onClick={handleStartGame}
                 style={{ 
