@@ -1,6 +1,7 @@
-// src/components/GameArea.js - 優化後的代碼
+// src/components/GameArea.js - 整合新的遊戲結束畫面
 import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
+import GameVictory from './GameVictory'; // 引入新的遊戲結束組件
 
 // 內聯 CSS 動畫樣式
 const animationStyles = `
@@ -61,98 +62,18 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 遊戲結束
+  // 遊戲結束 - 使用新的遊戲結束畫面
   if (gameStatus === '遊戲結束' && winner) {
     return (
-      <div style={{ 
-        position: 'fixed', 
-        inset: 0, 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        zIndex: 50
-      }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '3rem', 
-          borderRadius: '0.5rem', 
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          textAlign: 'center',
-          maxWidth: '90%',
-          width: '600px'
-        }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '2rem', color: '#D97706' }}>
-            🏆 恭喜獲勝 🏆
-          </h2>
-          <p style={{ fontSize: '1.875rem', marginBottom: '2rem', color: '#7C3AED' }}>
-            {winner} 成功達到20分！
-          </p>
-          
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>最終排名</h3>
-            {players.sort((a, b) => b.score - a.score).map((player, index) => (
-              <div 
-                key={index} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '1rem', 
-                  marginBottom: '0.5rem', 
-                  borderRadius: '0.5rem',
-                  backgroundColor: player.name === winner ? '#FEF3C7' : '#F3F4F6'
-                }}
-              >
-                <span style={{ fontSize: '1.25rem' }}>#{index + 1} {player.name}</span>
-                <span style={{ 
-                  fontSize: '1.25rem', 
-                  fontWeight: 'bold',
-                  color: player.name === winner ? '#D97706' : 'inherit'
-                }}>
-                  分數：{player.score}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
-            <button 
-              onClick={restartGame}
-              style={{ 
-                backgroundColor: '#3B82F6', 
-                color: 'white', 
-                padding: '1rem 2rem', 
-                borderRadius: '0.5rem',
-                fontSize: '1.25rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            >
-              再來一局
-            </button>
-            <button 
-              onClick={() => {
-                endGame();
-                if (onGameEnd) onGameEnd();
-              }}
-              style={{ 
-                backgroundColor: '#EF4444', 
-                color: 'white', 
-                padding: '1rem 2rem', 
-                borderRadius: '0.5rem',
-                fontSize: '1.25rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            >
-              結束遊戲
-            </button>
-          </div>
-        </div>
-      </div>
+      <GameVictory 
+        players={players} 
+        winner={winner} 
+        onRestart={restartGame} 
+        onEnd={() => {
+          endGame();
+          if (onGameEnd) onGameEnd();
+        }} 
+      />
     );
   }
 
