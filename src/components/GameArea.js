@@ -1,8 +1,8 @@
-// src/components/GameArea.js - 優化後的代碼
-import React, { useState, useRef } from 'react';
+// src/components/GameArea.js - 優化獲勝畫面的代碼
+import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 
-// 內聯 CSS 動畫樣式
+// 動畫樣式
 const animationStyles = `
   @keyframes moveUp {
     0% { transform: translateY(0); opacity: 1; }
@@ -14,7 +14,46 @@ const animationStyles = `
     50% { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; color: #FFC125; }
     100% { text-shadow: 0 0 5px gold, 0 0 10px gold; color: #FFD700; }
   }
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  
+  @keyframes confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
 `;
+
+// 彩色紙屑元素
+const Confetti = ({ count = 50 }) => {
+  const confetti = Array.from({ length: count }).map((_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    size: `${Math.random() * 10 + 5}px`,
+    duration: `${Math.random() * 3 + 2}s`,
+    delay: `${Math.random() * 2}s`,
+    color: `hsl(${Math.random() * 360}, 80%, 60%)`,
+  }));
+
+  return confetti.map((conf) => (
+    <div
+      key={conf.id}
+      style={{
+        position: 'absolute',
+        left: conf.left,
+        top: '-20px',
+        width: conf.size,
+        height: conf.size,
+        backgroundColor: conf.color,
+        borderRadius: '2px',
+        zIndex: 50,
+        animation: `confetti ${conf.duration} ease-in ${conf.delay} forwards`,
+      }}
+    />
+  ));
+};
 
 const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const {
@@ -32,6 +71,19 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
+  
+  // 關鍵添加：確保勝利畫面正確顯示
+  const [showVictoryScreen, setShowVictoryScreen] = useState(false);
+  
+  // 監聽遊戲狀態和獲勝者變化
+  useEffect(() => {
+    // 當遊戲狀態為結束且有獲勝者時，顯示勝利畫面
+    if (gameStatus === '遊戲結束' && winner) {
+      setShowVictoryScreen(true);
+    } else {
+      setShowVictoryScreen(false);
+    }
+  }, [gameStatus, winner]);
 
   // 處理答案檢查
   const handleCheckAnswer = (index) => {
@@ -52,6 +104,15 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     checkAnswer(index);
   };
 
+  // 處理回到大廳
+  const handleReturnToLobby = () => {
+    setShowVictoryScreen(false);
+    if (onGameEnd) {
+      endGame();
+      onGameEnd();
+    }
+  };
+
   // 遊戲未開始或無題目
   if (!currentQuestion || (gameStatus !== '遊戲中' && gameStatus !== '遊戲結束')) {
     return (
@@ -61,8 +122,8 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 遊戲結束
-  if (gameStatus === '遊戲結束' && winner) {
+  // 勝利畫面 - 更新為更加吸引人的設計
+  if (showVictoryScreen && winner) {
     return (
       <div style={{ 
         position: 'fixed', 
@@ -70,27 +131,65 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        zIndex: 50
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        zIndex: 50,
+        overflow: 'hidden'
       }}>
+        <style>{animationStyles}</style>
+        
+        {/* 彩色紙屑效果 */}
+        <Confetti count={100} />
+        
         <div style={{ 
           backgroundColor: 'white', 
           padding: '3rem', 
-          borderRadius: '0.5rem', 
+          borderRadius: '1rem', 
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           textAlign: 'center',
           maxWidth: '90%',
-          width: '600px'
+          width: '600px',
+          animation: 'fadeIn 0.5s ease-out',
+          border: '3px solid #FFD700'
         }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '2rem', color: '#D97706' }}>
+          <h2 style={{ 
+            fontSize: '2.5rem', 
+            fontWeight: 'bold', 
+            marginBottom: '1.5rem', 
+            color: '#D97706',
+            textShadow: '0 0 10px rgba(217, 119, 6, 0.3)'
+          }}>
             🏆 恭喜獲勝 🏆
           </h2>
-          <p style={{ fontSize: '1.875rem', marginBottom: '2rem', color: '#7C3AED' }}>
+          
+          <p style={{ 
+            fontSize: '1.875rem', 
+            marginBottom: '2rem', 
+            color: '#7C3AED',
+            background: 'linear-gradient(45deg, #7C3AED, #EC4899)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            padding: '0.5rem',
+            fontWeight: 'bold'
+          }}>
             {winner} 成功達到20分！
           </p>
           
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>最終排名</h3>
+          <div style={{ 
+            marginBottom: '2rem',
+            backgroundColor: '#F9FAFB',
+            borderRadius: '0.75rem',
+            padding: '1rem',
+            boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.05)'
+          }}>
+            <h3 style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 'bold', 
+              marginBottom: '1rem',
+              color: '#4B5563'
+            }}>
+              最終排名
+            </h3>
+            
             {players.sort((a, b) => b.score - a.score).map((player, index) => (
               <div 
                 key={index} 
@@ -101,16 +200,35 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                   padding: '1rem', 
                   marginBottom: '0.5rem', 
                   borderRadius: '0.5rem',
-                  backgroundColor: player.name === winner ? '#FEF3C7' : '#F3F4F6'
+                  backgroundColor: player.name === winner ? '#FEF3C7' : '#F3F4F6',
+                  border: player.name === winner ? '2px solid #F59E0B' : '1px solid #E5E7EB',
+                  transform: player.name === winner ? 'scale(1.05)' : 'scale(1)',
+                  transition: 'all 0.2s ease',
+                  boxShadow: player.name === winner ? '0 4px 6px -1px rgba(245, 158, 11, 0.1), 0 2px 4px -1px rgba(245, 158, 11, 0.06)' : 'none'
                 }}
               >
-                <span style={{ fontSize: '1.25rem' }}>#{index + 1} {player.name}</span>
+                <span style={{ 
+                  fontSize: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  {index === 0 && <span style={{ fontSize: '1.5rem' }}>🥇</span>}
+                  {index === 1 && <span style={{ fontSize: '1.5rem' }}>🥈</span>}
+                  {index === 2 && <span style={{ fontSize: '1.5rem' }}>🥉</span>}
+                  {index > 2 && <span style={{ fontSize: '1.25rem', width: '1.5rem', textAlign: 'center' }}>{index + 1}</span>}
+                  {player.name}
+                </span>
                 <span style={{ 
                   fontSize: '1.25rem', 
                   fontWeight: 'bold',
-                  color: player.name === winner ? '#D97706' : 'inherit'
+                  color: player.name === winner ? '#D97706' : '#4B5563',
+                  backgroundColor: player.name === winner ? '#FEF3C7' : '#F3F4F6',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '9999px',
+                  border: player.name === winner ? '1px solid #F59E0B' : '1px solid #E5E7EB'
                 }}>
-                  分數：{player.score}
+                  {player.score} 分
                 </span>
               </div>
             ))}
@@ -127,16 +245,23 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                 fontSize: '1.25rem',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.5)',
+                border: 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#2563EB';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = '#3B82F6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               再來一局
             </button>
             <button 
-              onClick={() => {
-                endGame();
-                if (onGameEnd) onGameEnd();
-              }}
+              onClick={handleReturnToLobby}
               style={{ 
                 backgroundColor: '#EF4444', 
                 color: 'white', 
@@ -145,7 +270,17 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                 fontSize: '1.25rem',
                 fontWeight: 'bold',
                 cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.5)',
+                border: 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#DC2626';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = '#EF4444';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               結束遊戲
