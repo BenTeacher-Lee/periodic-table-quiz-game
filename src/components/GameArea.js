@@ -1,5 +1,5 @@
 // src/components/GameArea.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 
 const GameArea = ({ roomId, playerName, onGameEnd }) => {
@@ -21,67 +21,28 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
 
   // 處理答案檢查
   const handleCheckAnswer = (index) => {
-    const isCorrect = index === currentQuestion.correctAnswer;
-    
-    if (isCorrect) {
+    if (currentQuestion && index === currentQuestion.correctAnswer) {
       setShowCorrectEffect(true);
-      
-      // 添加分數動畫
       const newAnimation = {
         id: animationIdRef.current++,
-        x: Math.random() * 200,
-        y: Math.random() * 100
+        x: Math.random() * 200
       };
-      
       setScoreAnimations(prev => [...prev, newAnimation]);
-      
-      // 1秒後移除正確效果
       setTimeout(() => {
         setShowCorrectEffect(false);
       }, 1000);
-      
-      // 1秒後移除分數動畫
       setTimeout(() => {
         setScoreAnimations(prev => prev.filter(anim => anim.id !== newAnimation.id));
       }, 1000);
     }
-    
     checkAnswer(index);
-  };
-
-  // 生成五彩紙屑
-  const generateConfetti = () => {
-    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-    const confetti = [];
-    
-    for (let i = 0; i < 100; i++) {
-      const left = Math.random() * 100;
-      const top = Math.random() * 100;
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const delay = Math.random() * 5;
-      
-      confetti.push(
-        <div 
-          key={i}
-          className="confetti"
-          style={{
-            left: `${left}%`,
-            top: `${top}%`,
-            backgroundColor: color,
-            animationDelay: `${delay}s`
-          }}
-        />
-      );
-    }
-    
-    return confetti;
   };
 
   // 遊戲未開始或無題目
   if (!currentQuestion || (gameStatus !== '遊戲中' && gameStatus !== '遊戲結束')) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-2xl font-bold text-gray-700">等待遊戲開始...</div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4B5563' }}>等待遊戲開始...</div>
       </div>
     );
   }
@@ -89,35 +50,71 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   // 遊戲結束
   if (gameStatus === '遊戲結束' && winner) {
     return (
-      <div className="victory-container">
-        {generateConfetti()}
-        <div className="victory-message">
-          <h2 className="text-4xl font-bold mb-8 text-yellow-600">🏆 恭喜獲勝 🏆</h2>
-          <p className="text-3xl mb-8 text-purple-600">
+      <div style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 50
+      }}>
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '3rem', 
+          borderRadius: '0.5rem', 
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          textAlign: 'center',
+          maxWidth: '90%',
+          width: '600px'
+        }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '2rem', color: '#D97706' }}>
+            🏆 恭喜獲勝 🏆
+          </h2>
+          <p style={{ fontSize: '1.875rem', marginBottom: '2rem', color: '#7C3AED' }}>
             {winner} 成功達到20分！
           </p>
           
-          <div className="mb-8">
-            <h3 className="text-2xl font-semibold mb-4">最終排名</h3>
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>最終排名</h3>
             {players.sort((a, b) => b.score - a.score).map((player, index) => (
               <div 
                 key={index} 
-                className={`flex justify-between items-center p-4 mb-2 rounded-lg ${
-                  player.name === winner ? 'bg-yellow-100' : 'bg-gray-100'
-                }`}
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '1rem', 
+                  marginBottom: '0.5rem', 
+                  borderRadius: '0.5rem',
+                  backgroundColor: player.name === winner ? '#FEF3C7' : '#F3F4F6'
+                }}
               >
-                <span className="text-xl">#{index + 1} {player.name}</span>
-                <span className={`text-xl font-bold ${player.name === winner ? 'text-yellow-600' : ''}`}>
+                <span style={{ fontSize: '1.25rem' }}>#{index + 1} {player.name}</span>
+                <span style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: 'bold',
+                  color: player.name === winner ? '#D97706' : 'inherit'
+                }}>
                   分數：{player.score}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="flex space-x-6 justify-center">
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
             <button 
               onClick={restartGame}
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg text-xl font-bold hover:bg-blue-600 transition shadow-md"
+              style={{ 
+                backgroundColor: '#3B82F6', 
+                color: 'white', 
+                padding: '1rem 2rem', 
+                borderRadius: '0.5rem',
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}
             >
               再來一局
             </button>
@@ -126,7 +123,16 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                 endGame();
                 if (onGameEnd) onGameEnd();
               }}
-              className="bg-red-500 text-white px-6 py-3 rounded-lg text-xl font-bold hover:bg-red-600 transition shadow-md"
+              style={{ 
+                backgroundColor: '#EF4444', 
+                color: 'white', 
+                padding: '1rem 2rem', 
+                borderRadius: '0.5rem',
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}
             >
               結束遊戲
             </button>
@@ -138,77 +144,162 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
 
   // 遊戲中
   return (
-    <div className="container mx-auto p-4">
-      <div className={`bg-white p-8 rounded-lg shadow-lg ${showCorrectEffect ? 'correct-answer' : ''}`}>
-        <h2 className="text-3xl font-bold mb-6 text-center">元素週期表搶答遊戲</h2>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+      <div style={{ 
+        backgroundColor: showCorrectEffect ? '#ECFDF5' : 'white', 
+        padding: '2rem', 
+        borderRadius: '0.5rem', 
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        transition: 'background-color 0.5s ease'
+      }}>
+        <h2 style={{ 
+          fontSize: '2rem', 
+          fontWeight: 'bold', 
+          marginBottom: '2rem', 
+          textAlign: 'center'
+        }}>
+          元素週期表搶答遊戲
+        </h2>
         
         {/* 分數動畫 */}
         {scoreAnimations.map(anim => (
           <div 
             key={anim.id}
-            className="score-animation"
             style={{
+              position: 'absolute',
               top: '50%',
               left: `calc(50% + ${anim.x - 100}px)`,
+              color: '#10B981',
+              fontWeight: 'bold',
+              fontSize: '1.5rem',
+              animation: 'moveUp 1s forwards'
             }}
           >
             +1分!
           </div>
         ))}
         
-        <div className="mb-8">
-          <h3 className="text-2xl mb-6 text-center">{currentQuestion.question}</h3>
-          <div className="grid grid-cols-2 gap-6">
+        <div style={{ marginBottom: '3rem' }}>
+          <p style={{ 
+            fontSize: '1.5rem', 
+            marginBottom: '1.5rem', 
+            fontFamily: 'Arial, sans-serif' // 使用預設字體
+          }}>
+            <span style={{ fontWeight: 'bold' }}>Question: </span>
+            {currentQuestion.question}
+          </p>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 1fr', 
+            gap: '1rem',
+            marginBottom: '1.5rem'
+          }}>
             {currentQuestion.options.map((option, index) => (
               <button 
                 key={index}
                 onClick={() => handleCheckAnswer(index)}
                 disabled={currentPlayer !== playerName}
-                className={`p-6 rounded-lg text-xl font-semibold ${
-                  currentPlayer !== playerName 
-                    ? 'bg-gray-300 cursor-not-allowed' 
-                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                }`}
+                style={{ 
+                  padding: '1.25rem', 
+                  backgroundColor: currentPlayer !== playerName ? '#E5E7EB' : '#3B82F6',
+                  color: currentPlayer !== playerName ? '#6B7280' : 'white',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  cursor: currentPlayer !== playerName ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  fontFamily: 'Arial, sans-serif', // 使用預設字體
+                  transition: 'transform 0.1s ease',
+                  transform: 'scale(1)',
+                  ':hover': { 
+                    transform: 'scale(1.03)' 
+                  },
+                  ':active': { 
+                    transform: 'scale(0.98)' 
+                  }
+                }}
               >
                 {option}
               </button>
             ))}
           </div>
+          
+          {currentPlayer && (
+            <div style={{ 
+              textAlign: 'right', 
+              padding: '0.75rem', 
+              backgroundColor: '#FEF3C7', 
+              borderRadius: '0.5rem', 
+              fontSize: '1.25rem',
+              fontFamily: 'Arial, sans-serif' // 使用預設字體
+            }}>
+              目前搶答者：<span style={{ fontWeight: 'bold', color: '#D97706' }}>{currentPlayer}</span>
+            </div>
+          )}
         </div>
         
         <div>
-          <h3 className="text-xl font-semibold mb-4 text-center">玩家</h3>
-          <div className="space-y-4">
+          <h3 style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 'bold', 
+            marginBottom: '1rem',
+            textAlign: 'left',
+            fontFamily: 'Arial, sans-serif' // 使用預設字體
+          }}>
+            計分榜
+          </h3>
+          
+          <div style={{ marginBottom: '2rem' }}>
             {players.map((player, index) => (
               <div 
                 key={index} 
-                className="flex justify-between items-center p-4 bg-gray-50 rounded-lg"
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '0.75rem', 
+                  marginBottom: '0.5rem',
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: '0.5rem',
+                  fontFamily: 'Arial, sans-serif' // 使用預設字體
+                }}
               >
-                <div className="text-xl">
+                <div style={{ fontSize: '1.25rem' }}>
                   <span>{player.name}</span>
-                  <span className="ml-6 font-bold">分數：{player.score}</span>
+                  <span style={{ marginLeft: '1rem', fontWeight: 'bold' }}>分數：{player.score}</span>
                 </div>
-                <button 
-                  onClick={() => quickAnswer()}
-                  disabled={currentPlayer !== null || player.name !== playerName}
-                  className={`px-6 py-3 rounded-lg text-lg font-bold ${
-                    currentPlayer !== null || player.name !== playerName
-                      ? 'bg-gray-300 cursor-not-allowed' 
-                      : 'bg-green-500 text-white hover:bg-green-600'
-                  }`}
-                >
-                  搶答
-                </button>
+                
+                {player.name === playerName && (
+                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <button 
+                      onClick={() => quickAnswer()}
+                      disabled={currentPlayer !== null}
+                      style={{ 
+                        padding: '0.875rem 2rem',
+                        backgroundColor: currentPlayer !== null ? '#E5E7EB' : '#10B981',
+                        color: currentPlayer !== null ? '#6B7280' : 'white',
+                        border: 'none',
+                        borderRadius: '0.75rem',
+                        fontSize: '1.25rem',
+                        fontWeight: 'bold',
+                        cursor: currentPlayer !== null ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.2s ease',
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translateX(-50%)'
+                      }}
+                    >
+                      搶答
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
-        
-        {currentPlayer && (
-          <div className="mt-6 p-4 bg-yellow-100 rounded-lg text-center text-xl">
-            目前搶答者：<span className="font-bold text-yellow-600">{currentPlayer}</span>
-          </div>
-        )}
       </div>
     </div>
   );
