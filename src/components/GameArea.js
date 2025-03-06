@@ -10,9 +10,9 @@ const animationStyles = `
   }
   
   @keyframes glowing {
-    0% { text-shadow: 0 0 5px rgba(255, 215, 0, 0.7); }
-    50% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 0 30px rgba(255, 165, 0, 0.8); }
-    100% { text-shadow: 0 0 5px rgba(255, 215, 0, 0.7); }
+    0% { text-shadow: 0 0 5px gold, 0 0 10px gold; color: #FFD700; }
+    50% { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; color: #FFC125; }
+    100% { text-shadow: 0 0 5px gold, 0 0 10px gold; color: #FFD700; }
   }
 `;
 
@@ -208,7 +208,10 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
               <span style={{ 
                 fontSize: '1.125rem', 
                 fontWeight: 'bold',
-                animation: player.score >= 15 ? 'glowing 1.5s infinite' : 'none'
+                animation: player.score >= 15 ? 'glowing 1.5s infinite' : 'none',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                backgroundColor: player.score >= 15 ? 'rgba(255, 215, 0, 0.15)' : 'transparent'
               }}>
                 {index + 1}. {player.name}
               </span>
