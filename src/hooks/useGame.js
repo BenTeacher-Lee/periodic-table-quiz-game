@@ -1,55 +1,201 @@
-// src/hooks/useGame.js 中需要修改的部分
-// 確保遊戲狀態更新和勝利判斷正確
-// 找到 useGame hook 中控制遊戲結束的部分，確保正確設置 winner 和 gameStatus
+// src/hooks/useGame.js
+import { useState, useEffect, useCallback } from 'react';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
 
-// 在現有的 useGame.js 中找到類似這樣的代碼並進行修改
-// 這是一個示例，您需要根據實際代碼進行調整
-
-const useGame = (roomId, playerName) => {
-  // 現有的狀態和函數...
-  const [gameStatus, setGameStatus] = useState('等待中');
-  const [winner, setWinner] = useState(null);
-  const [players, setPlayers] = useState([]);
+export const useGame = (roomId, playerName) => {
+  // Firebase 實例
+  const db = firebase.firestore();
+  const firestore = firebase.firestore;
   
-  // 處理得分的函數，在這裡加入勝利檢查
-  const handleScore = (playerName) => {
-    setPlayers(prevPlayers => {
-      const updatedPlayers = prevPlayers.map(player => {
-        if (player.name === playerName) {
-          const newScore = player.score + 1;
-          
-          // 檢查是否達到勝利條件（20分）
-          if (newScore >= 20) {
-            // 關鍵改動：確保設置遊戲狀態為結束，並記錄獲勝者
-            setGameStatus('遊戲結束');
-            setWinner(playerName);
+  // 遊戲狀態
+  const [gameStatus, setGameStatus] = useState('等待中');
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [currentPlayer, setCurrentPlayer] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [winner, setWinner] = useState(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [questions, setQuestions] = useState([]);
+  
+  // 監聽房間狀態
+  useEffect(() => {
+    if (!roomId) return;
+    
+    const roomRef = db.collection('rooms').doc(roomId);
+    
+    const unsubscribe = roomRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        const roomData = doc.data();
+        setGameStatus(roomData.status || '等待中');
+        setCurrentPlayer(roomData.currentPlayer || null);
+        setWinner(roomData.winner || null);
+        setQuestionIndex(roomData.questionIndex || 0);
+        
+        // 如果有問題資料，設置當前問題
+        if (roomData.questions && roomData.questions.length > 0) {
+          setQuestions(roomData.questions);
+          if (roomData.questionIndex !== undefined && roomData.questionIndex < roomData.questions.length) {
+            setCurrentQuestion(roomData.questions[roomData.questionIndex]);
           }
-          
-          return { ...player, score: newScore };
         }
-        return player;
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [roomId, db]);
+  
+  // 監聽玩家狀態
+  useEffect(() => {
+    if (!roomId) return;
+    
+    const playersRef = db.collection('rooms').doc(roomId).collection('players');
+    
+    const unsubscribe = playersRef.onSnapshot((snapshot) => {
+      const playersData = [];
+      snapshot.forEach((doc) => {
+        playersData.push({ id: doc.id, ...doc.data() });
+      });
+      setPlayers(playersData);
+      
+      // 檢查是否有玩家達到勝利條件 (20分)
+      const winningPlayer = playersData.find(player => player.score >= 20);
+      if (winningPlayer && gameStatus !== '遊戲結束') {
+        // 關鍵改進：確保設置獲勝者並更新遊戲狀態
+        const roomRef = db.collection('rooms').doc(roomId);
+        roomRef.update({
+          status: '遊戲結束',
+          winner: winningPlayer.name
+        });
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [roomId, db, gameStatus]);
+  
+  // 搶答功能
+  const quickAnswer = useCallback(async () => {
+    if (!roomId || !playerName || currentPlayer) return;
+    
+    try {
+      const roomRef = db.collection('rooms').doc(roomId);
+      await roomRef.update({
+        currentPlayer: playerName
+      });
+    } catch (error) {
+      console.error('搶答時發生錯誤:', error);
+    }
+  }, [roomId, playerName, currentPlayer, db]);
+  
+  // 檢查答案
+  const checkAnswer = useCallback(async (selectedIndex) => {
+    if (!roomId || !playerName || currentPlayer !== playerName || !currentQuestion) return;
+    
+    try {
+      const batch = firestore.batch();
+      const roomRef = db.collection('rooms').doc(roomId);
+      const playerRef = db.collection('rooms').doc(roomId).collection('players').doc(playerName);
+      
+      // 檢查答案是否正確
+      const isCorrect = selectedIndex === currentQuestion.correctAnswer;
+      
+      if (isCorrect) {
+        // 增加分數
+        const playerDoc = await playerRef.get();
+        const currentScore = playerDoc.exists ? (playerDoc.data().score || 0) : 0;
+        const newScore = currentScore + 1;
+        
+        batch.update(playerRef, { score: newScore });
+        
+        // 改進：檢查是否達到勝利條件
+        if (newScore >= 20) {
+          // 關鍵：確保設置遊戲狀態為結束，並設置獲勝者
+          batch.update(roomRef, {
+            status: '遊戲結束',
+            winner: playerName,
+            currentPlayer: null
+          });
+        } else {
+          // 進入下一題
+          const nextQuestionIndex = questionIndex + 1;
+          if (nextQuestionIndex < questions.length) {
+            batch.update(roomRef, {
+              questionIndex: nextQuestionIndex,
+              currentPlayer: null
+            });
+          } else {
+            // 問題用完，遊戲結束
+            batch.update(roomRef, {
+              status: '遊戲結束',
+              currentPlayer: null
+            });
+          }
+        }
+      } else {
+        // 答錯，清空當前玩家
+        batch.update(roomRef, {
+          currentPlayer: null
+        });
+      }
+      
+      await batch.commit();
+    } catch (error) {
+      console.error('檢查答案時發生錯誤:', error);
+    }
+  }, [roomId, playerName, currentPlayer, currentQuestion, questionIndex, questions, db, firestore]);
+  
+  // 重新開始遊戲
+  const restartGame = useCallback(async () => {
+    if (!roomId) return;
+    
+    try {
+      const batch = firestore.batch();
+      const roomRef = db.collection('rooms').doc(roomId);
+      
+      // 重置所有玩家分數
+      const playersSnapshot = await db.collection('rooms').doc(roomId).collection('players').get();
+      playersSnapshot.forEach(doc => {
+        batch.update(doc.ref, { score: 0 });
       });
       
-      return updatedPlayers;
-    });
-  };
+      // 更新房間狀態
+      batch.update(roomRef, {
+        status: '遊戲中',
+        currentPlayer: null,
+        winner: null,
+        questionIndex: 0
+      });
+      
+      await batch.commit();
+    } catch (error) {
+      console.error('重新開始遊戲時發生錯誤:', error);
+    }
+  }, [roomId, db, firestore]);
   
-  // 確保遊戲結束時不會立即跳轉回大廳
-  const endGame = () => {
-    // 只有在確認用戶關閉獲勝畫面後才真正結束遊戲
-    // 重置遊戲狀態
-    setGameStatus('等待中');
-    setWinner(null);
-    // 其他重置邏輯...
-  };
+  // 結束遊戲
+  const endGame = useCallback(async () => {
+    if (!roomId) return;
+    
+    try {
+      const roomRef = db.collection('rooms').doc(roomId);
+      await roomRef.update({
+        status: '等待中',
+        currentPlayer: null,
+        winner: null
+      });
+    } catch (error) {
+      console.error('結束遊戲時發生錯誤:', error);
+    }
+  }, [roomId, db]);
   
-  // 返回所有需要的狀態和函數
   return {
-    // 其他狀態和函數...
     gameStatus,
+    currentQuestion,
+    currentPlayer,
     winner,
     players,
-    endGame,
-    // 其他返回值...
+    quickAnswer,
+    checkAnswer,
+    restartGame,
+    endGame
   };
 };
