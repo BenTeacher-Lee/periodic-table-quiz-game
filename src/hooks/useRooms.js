@@ -1,12 +1,24 @@
 // src/hooks/useRooms.js
-import { useState, useEffect } from 'react';
-import { ref, push, set, onValue, update, remove } from 'firebase/database';
+import { useState, useEffect, useRef } from 'react';
+import { ref, push, set, onValue, update, remove, serverTimestamp, get } from 'firebase/database';
 import { database } from '../firebase';
 
 export const useRooms = (playerName) => {
   const [rooms, setRooms] = useState([]);
   const [currentRoom, setCurrentRoom] = useState(null);
   const [loading, setLoading] = useState(true);
+  const activityTimerRef = useRef(null);
+  const INACTIVE_TIMEOUT = 180000; // 3分鐘 = 180000毫秒
+
+  // 更新房間的最後活動時間
+  const updateLastActivity = (roomId) => {
+    if (!roomId) return;
+    
+    const roomRef = ref(database, `rooms/${roomId}`);
+    update(roomRef, { 
+      lastActivity: serverTimestamp() 
+    });
+  };
 
   // 監聽房間變化
   useEffect(() => {
@@ -17,14 +29,32 @@ export const useRooms = (playerName) => {
       const roomList = [];
       
       if (data) {
+        // 檢查並清理閒置房間
         Object.keys(data).forEach((key) => {
+          const room = data[key];
+          
+          // 檢查房間最後活動時間
+          if (room.lastActivity) {
+            const lastActivity = new Date(room.lastActivity);
+            const now = new Date();
+            const timeDiff = now - lastActivity;
+            
+            // 如果房間超過3分鐘沒有活動，自動清理
+            if (timeDiff > INACTIVE_TIMEOUT) {
+              // 刪除此房間
+              const inactiveRoomRef = ref(database, `rooms/${key}`);
+              remove(inactiveRoomRef);
+              return;
+            }
+          }
+          
           roomList.push({ 
             id: key, 
-            ...data[key],
+            ...room,
             // 將players物件轉換為數組以便渲染
-            playerArray: data[key].players ? Object.keys(data[key].players).map(playerKey => ({
+            playerArray: room.players ? Object.keys(room.players).map(playerKey => ({
               name: playerKey,
-              score: data[key].players[playerKey].score
+              score: room.players[playerKey].score
             })) : []
           });
         });
@@ -38,11 +68,45 @@ export const useRooms = (playerName) => {
         const updatedCurrentRoom = roomList.find(room => room.id === currentRoom.id);
         if (updatedCurrentRoom) {
           setCurrentRoom(updatedCurrentRoom);
+        } else {
+          // 如果找不到當前房間，表示房間可能已被刪除
+          setCurrentRoom(null);
         }
       }
     });
 
     return () => unsubscribe();
+  }, [currentRoom]);
+
+  // 設置活動檢測計時器
+  useEffect(() => {
+    if (currentRoom) {
+      // 清除舊的計時器
+      if (activityTimerRef.current) {
+        clearInterval(activityTimerRef.current);
+      }
+      
+      // 初始更新活動時間
+      updateLastActivity(currentRoom.id);
+      
+      // 設置定時更新活動時間的計時器
+      activityTimerRef.current = setInterval(() => {
+        updateLastActivity(currentRoom.id);
+      }, 60000); // 每分鐘更新一次
+    } else {
+      // 如果不在房間中，清除計時器
+      if (activityTimerRef.current) {
+        clearInterval(activityTimerRef.current);
+        activityTimerRef.current = null;
+      }
+    }
+    
+    // 組件卸載時清除計時器
+    return () => {
+      if (activityTimerRef.current) {
+        clearInterval(activityTimerRef.current);
+      }
+    };
   }, [currentRoom]);
 
   // 創建新房間
@@ -58,7 +122,8 @@ export const useRooms = (playerName) => {
       name: roomName,
       host: playerName,
       status: '等待中',
-      createdAt: Date.now(),
+      createdAt: serverTimestamp(),
+      lastActivity: serverTimestamp(),
       players: {
         [playerName]: { 
           score: 0 
@@ -93,11 +158,16 @@ export const useRooms = (playerName) => {
     // 檢查玩家是否已在房間中
     if (selectedRoom.players && selectedRoom.players[playerName]) {
       setCurrentRoom(selectedRoom);
+      updateLastActivity(roomId);
       return selectedRoom;
     }
     
+    // 新玩家加入房間
     const playerRef = ref(database, `rooms/${roomId}/players/${playerName}`);
     set(playerRef, { score: 0 });
+    
+    // 更新最後活動時間
+    updateLastActivity(roomId);
     
     setCurrentRoom(selectedRoom);
     return selectedRoom;
@@ -131,8 +201,9 @@ export const useRooms = (playerName) => {
   const startGame = () => {
     if (!currentRoom) return;
     
-    if (currentRoom.playerArray.length < 2) {
-      alert('至少需要2名玩家才能開始遊戲');
+    // 修改此處，允許1人開始遊戲
+    if (currentRoom.playerArray.length < 1) {
+      alert('至少需要1名玩家才能開始遊戲');
       return;
     }
     
@@ -142,7 +213,10 @@ export const useRooms = (playerName) => {
     }
     
     const roomRef = ref(database, `rooms/${currentRoom.id}`);
-    update(roomRef, { status: '遊戲中' });
+    update(roomRef, { 
+      status: '遊戲中',
+      lastActivity: serverTimestamp()
+    });
     
     // 添加一個默認問題開始遊戲
     update(roomRef, {
@@ -162,6 +236,7 @@ export const useRooms = (playerName) => {
     createRoom,
     joinRoom,
     leaveRoom,
-    startGame
+    startGame,
+    updateLastActivity
   };
 };
