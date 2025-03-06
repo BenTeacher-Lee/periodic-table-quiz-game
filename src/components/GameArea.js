@@ -2,6 +2,20 @@
 import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 
+// 內聯 CSS 動畫樣式
+const animationStyles = `
+  @keyframes moveUp {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-50px); opacity: 0; }
+  }
+  
+  @keyframes glowing {
+    0% { text-shadow: 0 0 5px rgba(255, 215, 0, 0.7); }
+    50% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 0 30px rgba(255, 165, 0, 0.8); }
+    100% { text-shadow: 0 0 5px rgba(255, 215, 0, 0.7); }
+  }
+`;
+
 const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const {
     currentQuestion,
@@ -142,10 +156,107 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
+  // 排序玩家並按分數從高到低顯示
+  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+
   // 遊戲中
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem', display: 'flex', flexWrap: 'wrap' }}>
+      {/* 注入 CSS 動畫 */}
+      <style>{animationStyles}</style>
+      
+      {/* 左側計分榜 */}
       <div style={{ 
+        width: '280px', 
+        marginRight: '2rem',
+        marginBottom: '1rem',
+        alignSelf: 'flex-start',
+        backgroundColor: '#F9FAFB',
+        borderRadius: '0.75rem',
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        border: '2px solid #E5E7EB',
+        overflow: 'hidden'
+      }}>
+        <div style={{ 
+          backgroundColor: '#4B5563', 
+          color: 'white', 
+          padding: '0.75rem', 
+          textAlign: 'center',
+          fontWeight: 'bold',
+          fontSize: '1.25rem',
+        }}>
+          計分榜
+        </div>
+        
+        <div style={{ padding: '1rem' }}>
+          {sortedPlayers.map((player, index) => (
+            <div 
+              key={index} 
+              style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '0.75rem', 
+                marginBottom: '0.5rem',
+                backgroundColor: index === 0 ? '#FEF9C3' : 
+                               index === 1 ? '#F1F5F9' : 
+                               index === 2 ? '#FCE7F3' : 'white',
+                borderRadius: '0.5rem',
+                border: '1px solid #E5E7EB'
+              }}
+            >
+              <span style={{ 
+                fontSize: '1.125rem', 
+                fontWeight: 'bold',
+                animation: player.score >= 15 ? 'glowing 1.5s infinite' : 'none'
+              }}>
+                {index + 1}. {player.name}
+              </span>
+              <span style={{ 
+                fontSize: '1.125rem', 
+                fontWeight: 'bold',
+                backgroundColor: '#3B82F6',
+                color: 'white',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '9999px',
+                minWidth: '40px',
+                textAlign: 'center'
+              }}>
+                {player.score}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* 玩家搶答按鈕 - 僅顯示給當前玩家 */}
+        {sortedPlayers.find(p => p.name === playerName) && (
+          <div style={{ padding: '1rem', borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
+            <button 
+              onClick={() => quickAnswer()}
+              disabled={currentPlayer !== null}
+              style={{ 
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: currentPlayer !== null ? '#E5E7EB' : '#10B981',
+                color: currentPlayer !== null ? '#6B7280' : 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '1.25rem',
+                fontWeight: 'bold',
+                cursor: currentPlayer !== null ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              搶答
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 右側主遊戲區 */}
+      <div style={{ 
+        flex: '1 1 680px',
         backgroundColor: 'white', 
         padding: '2rem', 
         borderRadius: '0.5rem', 
@@ -218,7 +329,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: '1fr 1fr', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: '1rem',
             marginBottom: '1.5rem'
           }}>
@@ -239,13 +350,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   fontFamily: 'Arial, sans-serif', // 使用預設字體
                   transition: 'transform 0.1s ease',
-                  transform: 'scale(1)',
-                  ':hover': { 
-                    transform: 'scale(1.03)' 
-                  },
-                  ':active': { 
-                    transform: 'scale(0.98)' 
-                  }
+                  transform: 'scale(1)'
                 }}
               >
                 {option}
@@ -265,70 +370,6 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
               目前搶答者：<span style={{ fontWeight: 'bold', color: '#D97706' }}>{currentPlayer}</span>
             </div>
           )}
-        </div>
-        
-        <div>
-          <h3 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 'bold', 
-            marginBottom: '1rem',
-            textAlign: 'left',
-            fontFamily: 'Arial, sans-serif' // 使用預設字體
-          }}>
-            計分榜
-          </h3>
-          
-          <div style={{ marginBottom: '2rem' }}>
-            {players.map((player, index) => (
-              <div 
-                key={index} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '0.75rem 1rem', 
-                  marginBottom: '0.5rem',
-                  backgroundColor: '#F9FAFB',
-                  borderRadius: '0.5rem',
-                  fontFamily: 'Arial, sans-serif', // 使用預設字體
-                  position: 'relative'
-                }}
-              >
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  width: '100%',
-                  alignItems: 'center'
-                }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{player.name}</span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{player.score} 分</span>
-                </div>
-                
-                {player.name === playerName && (
-                  <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-                    <button 
-                      onClick={() => quickAnswer()}
-                      disabled={currentPlayer !== null}
-                      style={{ 
-                        padding: '0.875rem 2rem',
-                        backgroundColor: currentPlayer !== null ? '#E5E7EB' : '#10B981',
-                        color: currentPlayer !== null ? '#6B7280' : 'white',
-                        border: 'none',
-                        borderRadius: '0.75rem',
-                        fontSize: '1.25rem',
-                        fontWeight: 'bold',
-                        cursor: currentPlayer !== null ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      搶答
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
