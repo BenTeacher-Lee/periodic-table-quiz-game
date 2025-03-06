@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 增加測試勝利畫面功能
+// src/components/GameArea.js - 修正版本
 import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory'; // 確保正確引入
@@ -34,15 +34,14 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     checkAnswer,
     restartGame,
     endGame,
-    showingAnswer,
-    forceGameVictory // 用於測試的函數
+    showingAnswer
+    // 移除了 forceGameVictory
   } = useGame(roomId, playerName);
 
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
-  // 用於測試勝利畫面
-  const [testVictoryMode, setTestVictoryMode] = useState(false);
+  // 移除了測試勝利畫面的狀態
 
   // 處理答案檢查
   const handleCheckAnswer = (index) => {
@@ -63,12 +62,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     checkAnswer(index);
   };
 
-  // 測試勝利畫面
-  const handleTestVictory = () => {
-    console.log("測試勝利畫面");
-    setTestVictoryMode(true);
-    forceGameVictory(playerName);
-  };
+  // 移除了測試勝利畫面的函數
 
   // 遊戲未開始或無題目
   if (!currentQuestion || (gameStatus !== '遊戲中' && gameStatus !== '遊戲結束')) {
@@ -79,26 +73,16 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 檢查是否有玩家達到20分或測試模式
-  const winningPlayer = players.find(p => p.score >= 20);
-
-  // 遊戲結束或測試勝利畫面
-  if ((gameStatus === '遊戲結束' && winner) || testVictoryMode || winningPlayer) {
-    console.log("顯示勝利畫面:", { gameStatus, winner, testVictoryMode, winningPlayer });
-    
-    // 如果是測試模式或有獲勝玩家但未設置遊戲結束狀態
-    const actualWinner = winner || (winningPlayer ? winningPlayer.name : playerName);
+  // 遊戲結束 - 簡化條件
+  if (gameStatus === '遊戲結束' && winner) {
+    console.log("顯示勝利畫面:", { gameStatus, winner });
     
     return (
       <GameVictory 
         players={players} 
-        winner={actualWinner} 
-        onRestart={() => {
-          setTestVictoryMode(false);
-          restartGame();
-        }} 
+        winner={winner} 
+        onRestart={restartGame} 
         onEnd={() => {
-          setTestVictoryMode(false);
           endGame();
           if (onGameEnd) onGameEnd();
         }} 
@@ -347,26 +331,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           )}
         </div>
         
-        {/* 測試勝利畫面按鈕 */}
-        <button 
-          onClick={handleTestVictory}
-          style={{ 
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            backgroundColor: '#EF4444',
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            fontWeight: 'bold',
-            border: 'none',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            cursor: 'pointer',
-            zIndex: 1000
-          }}
-        >
-          測試勝利畫面
-        </button>
+        {/* 移除了測試勝利畫面按鈕 */}
       </div>
     </div>
   );

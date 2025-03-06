@@ -1,4 +1,4 @@
-// src/components/GameVictory.js
+// src/components/GameVictory.js - 修正版本
 import React, { useEffect, useState } from 'react';
 
 // 煙花動畫效果
@@ -116,7 +116,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
           width: '90%',
           maxWidth: '800px',
           opacity: showAnimation ? 1 : 0,
-          transform: `rotateX(${showAnimation ? '0deg' : '20deg'}) scale(${showAnimation ? 1 : 0.8})`,
+          transform: showAnimation ? 'rotateX(0deg) scale(1)' : 'rotateX(20deg) scale(0.8)',
           transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           overflow: 'hidden'
         }}
@@ -194,7 +194,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                 flex: '1',
                 minWidth: index === 0 ? '250px' : '200px',
                 maxWidth: index === 0 ? '350px' : '300px',
-                animation: `${isWinner ? 'bounce 1s ease infinite' : 'none'}`,
+                animation: isWinner ? 'bounce 1s ease infinite' : 'none', // 修正動畫表達式
                 position: 'relative',
                 order: index === 0 ? 2 : index === 1 ? 1 : 3, // 第一名在中間
               };
@@ -237,7 +237,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                     textAlign: 'center',
                     width: '100%',
                     border: isWinner ? '2px solid #FFD700' : '1px solid #E5E7EB',
-                    transform: `translateY(-${isWinner ? 10 : 0}px)`,
+                    transform: isWinner ? 'translateY(-10px)' : 'translateY(0px)', // 修正 transform 表達式
                     zIndex: isWinner ? 10 : 5
                   }}>
                     <h3 style={{ 
@@ -333,8 +333,6 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                 transition: 'all 0.2s',
                 minWidth: '180px'
               }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#2563EB'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#3B82F6'}
             >
               再來一局
             </button>
@@ -354,8 +352,6 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                 transition: 'all 0.2s',
                 minWidth: '180px'
               }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#DC2626'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#EF4444'}
             >
               結束遊戲
             </button>
@@ -363,7 +359,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
         </div>
       </div>
 
-      {/* CSS 動畫樣式 */}
+      {/* CSS 動畫樣式 - 保留在頁面內以確保動畫正常工作 */}
       <style>
         {`
           @keyframes firework {
