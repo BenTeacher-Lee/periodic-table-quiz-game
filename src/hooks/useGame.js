@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 修復勝利畫面問題
+// src/hooks/useGame.js - 修復勝利畫面問題的版本
 import { useState, useEffect } from 'react';
 import { ref, onValue, update, get, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -10,7 +10,7 @@ export const useGame = (roomId, playerName) => {
   const [winner, setWinner] = useState(null);
   const [players, setPlayers] = useState([]);
   const [usedQuestions, setUsedQuestions] = useState([]);
-  const [showingAnswer, setShowingAnswer] = useState(false); // 新增：是否正在展示答案
+  const [showingAnswer, setShowingAnswer] = useState(false); // 是否正在展示答案
 
   // 監聽遊戲狀態
   useEffect(() => {
@@ -40,7 +40,7 @@ export const useGame = (roomId, playerName) => {
         setPlayers(playerList);
       }
       
-      // 添加額外檢查：確保當有玩家達到20分時遊戲狀態為"遊戲結束"
+      // 檢查是否有玩家達到勝利條件（20分）
       if (data.players) {
         const playerScores = Object.entries(data.players).map(([name, data]) => ({
           name,
@@ -49,6 +49,7 @@ export const useGame = (roomId, playerName) => {
         
         const winningPlayer = playerScores.find(player => player.score >= 20);
         if (winningPlayer && data.status !== '遊戲結束') {
+          console.log("檢測到勝利條件，更新遊戲狀態");
           // 如果有玩家達到20分但遊戲狀態不是"遊戲結束"，則更新遊戲狀態
           update(roomRef, {
             status: '遊戲結束',
@@ -198,6 +199,7 @@ export const useGame = (roomId, playerName) => {
       
       // 檢查是否獲勝
       if (newScore >= 20) {
+        console.log("玩家達到20分，設置遊戲結束狀態");
         // 立即設置遊戲結束狀態
         update(ref(database, `rooms/${roomId}`), { 
           status: '遊戲結束',
@@ -224,6 +226,18 @@ export const useGame = (roomId, playerName) => {
         lastActivity: serverTimestamp()
       });
     }
+  };
+
+  // 手動設置遊戲勝利狀態 (用於測試)
+  const forceGameVictory = (winnerName = playerName) => {
+    if (!roomId) return;
+    
+    console.log("強制設置遊戲勝利狀態");
+    update(ref(database, `rooms/${roomId}`), { 
+      status: '遊戲結束',
+      winner: winnerName,
+      lastActivity: serverTimestamp()
+    });
   };
 
   // 重新開始遊戲
@@ -282,7 +296,8 @@ export const useGame = (roomId, playerName) => {
     checkAnswer,
     restartGame,
     endGame,
-    showingAnswer // 暴露答案顯示狀態
+    showingAnswer,
+    forceGameVictory // 新增測試函數
   };
 };
 
