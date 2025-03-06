@@ -1,4 +1,4 @@
-// src/hooks/useGame.js
+// src/hooks/useGame.js - 優化後的版本，解決題目重複問題
 import { useState, useEffect } from 'react';
 import { ref, onValue, update, get, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -9,6 +9,7 @@ export const useGame = (roomId, playerName) => {
   const [gameStatus, setGameStatus] = useState('waiting');
   const [winner, setWinner] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [usedQuestions, setUsedQuestions] = useState([]);
 
   // 監聽遊戲狀態
   useEffect(() => {
@@ -23,6 +24,9 @@ export const useGame = (roomId, playerName) => {
       setCurrentPlayer(data.currentPlayer || null);
       setGameStatus(data.status || 'waiting');
       setWinner(data.winner || null);
+      
+      // 同步已使用過的題目
+      setUsedQuestions(data.usedQuestions || []);
       
       // 格式化玩家數據
       if (data.players) {
@@ -48,7 +52,7 @@ export const useGame = (roomId, playerName) => {
     });
   };
 
-  // 從Firebase數據庫獲取隨機題目
+  // 從Firebase數據庫獲取不重複的隨機題目
   const getRandomQuestion = async () => {
     const questionsRef = ref(database, 'questions');
     try {
@@ -78,20 +82,53 @@ export const useGame = (roomId, playerName) => {
         ...data[key]
       }));
       
-      // 隨機選擇一道題目
-      const randomIndex = Math.floor(Math.random() * questionsArray.length);
-      const randomQuestion = questionsArray[randomIndex];
+      // 獲取當前房間已使用的題目
+      const roomRef = ref(database, `rooms/${roomId}`);
+      const roomSnapshot = await get(roomRef);
+      const roomData = roomSnapshot.val() || {};
+      const currentUsedQuestions = roomData.usedQuestions || [];
       
-      // 更新房間的當前題目
-      update(ref(database, `rooms/${roomId}`), {
-        currentQuestion: {
-          question: randomQuestion.question,
-          options: randomQuestion.options,
-          correctAnswer: randomQuestion.correctAnswer
-        },
-        currentPlayer: null,
-        lastActivity: serverTimestamp() // 更新活動時間
-      });
+      // 篩選掉已用過的題目
+      const unusedQuestions = questionsArray.filter(
+        question => !currentUsedQuestions.includes(question.id)
+      );
+      
+      // 如果所有題目都已使用過，重置已使用題目列表
+      if (unusedQuestions.length === 0) {
+        update(ref(database, `rooms/${roomId}`), { usedQuestions: [] });
+        
+        // 隨機選擇一個題目（因為已重置列表）
+        const randomIndex = Math.floor(Math.random() * questionsArray.length);
+        const randomQuestion = questionsArray[randomIndex];
+        
+        // 更新房間的當前題目和已使用題目列表
+        update(ref(database, `rooms/${roomId}`), {
+          currentQuestion: {
+            question: randomQuestion.question,
+            options: randomQuestion.options,
+            correctAnswer: randomQuestion.correctAnswer
+          },
+          usedQuestions: [randomQuestion.id],
+          currentPlayer: null,
+          lastActivity: serverTimestamp() // 更新活動時間
+        });
+      } else {
+        // 從未使用的題目中隨機選擇
+        const randomIndex = Math.floor(Math.random() * unusedQuestions.length);
+        const randomQuestion = unusedQuestions[randomIndex];
+        
+        // 更新房間的當前題目和已使用題目列表
+        update(ref(database, `rooms/${roomId}`), {
+          currentQuestion: {
+            question: randomQuestion.question,
+            options: randomQuestion.options,
+            correctAnswer: randomQuestion.correctAnswer
+          },
+          usedQuestions: [...currentUsedQuestions, randomQuestion.id],
+          currentPlayer: null,
+          lastActivity: serverTimestamp() // 更新活動時間
+        });
+      }
     } catch (error) {
       console.error("Error getting random question:", error);
       // 發生錯誤時使用默認題目
@@ -135,7 +172,7 @@ export const useGame = (roomId, playerName) => {
           lastActivity: serverTimestamp() // 更新活動時間
         });
       } else {
-        // 隨機選擇下一個題目
+        // 隨機選擇下一個不重複的題目
         await getRandomQuestion();
       }
     } else {
@@ -155,6 +192,7 @@ export const useGame = (roomId, playerName) => {
       status: '遊戲中',
       winner: null,
       currentPlayer: null,
+      usedQuestions: [], // 重置已使用的題目
       lastActivity: serverTimestamp() // 更新活動時間
     });
     
@@ -178,6 +216,7 @@ export const useGame = (roomId, playerName) => {
       winner: null,
       currentPlayer: null,
       currentQuestion: null,
+      usedQuestions: [], // 重置已使用的題目
       lastActivity: serverTimestamp() // 更新活動時間
     });
     
