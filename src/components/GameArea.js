@@ -64,6 +64,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     currentPlayer,
     winner,
     players,
+    questions, // 确保从 useGame 中接收 questions
     quickAnswer,
     checkAnswer,
     restartGame,
