@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 優化獲勝畫面的代碼
+// src/components/GameArea.js - 最終優化版本
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 
@@ -72,11 +72,12 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
   
-  // 關鍵添加：確保勝利畫面正確顯示
+  // 確保顯示勝利畫面
   const [showVictoryScreen, setShowVictoryScreen] = useState(false);
   
   // 監聽遊戲狀態和獲勝者變化
   useEffect(() => {
+    console.log("遊戲狀態變化:", gameStatus, "獲勝者:", winner);
     // 當遊戲狀態為結束且有獲勝者時，顯示勝利畫面
     if (gameStatus === '遊戲結束' && winner) {
       setShowVictoryScreen(true);
@@ -107,9 +108,11 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   // 處理回到大廳
   const handleReturnToLobby = () => {
     setShowVictoryScreen(false);
+    endGame();
     if (onGameEnd) {
-      endGame();
-      onGameEnd();
+      setTimeout(() => {
+        onGameEnd();
+      }, 100);
     }
   };
 
@@ -122,7 +125,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 勝利畫面 - 更新為更加吸引人的設計
+  // 勝利畫面
   if (showVictoryScreen && winner) {
     return (
       <div style={{ 
