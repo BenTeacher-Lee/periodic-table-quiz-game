@@ -1,4 +1,4 @@
-// src/components/GameArea.js
+// src/components/GameArea.js - 優化後的代碼
 import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 
@@ -146,11 +146,11 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
       <div style={{ 
-        backgroundColor: showCorrectEffect ? '#ECFDF5' : 'white', 
+        backgroundColor: 'white', 
         padding: '2rem', 
         borderRadius: '0.5rem', 
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        transition: 'background-color 0.5s ease'
+        position: 'relative'
       }}>
         <h2 style={{ 
           fontSize: '2rem', 
@@ -161,7 +161,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           元素週期表搶答遊戲
         </h2>
         
-        {/* 分數動畫 */}
+        {/* 分數動畫 - 置於最上層 */}
         {scoreAnimations.map(anim => (
           <div 
             key={anim.id}
@@ -172,14 +172,41 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
               color: '#10B981',
               fontWeight: 'bold',
               fontSize: '1.5rem',
-              animation: 'moveUp 1s forwards'
+              animation: 'moveUp 1s forwards',
+              zIndex: 100  // 確保顯示在最上層
             }}
           >
             +1分!
           </div>
         ))}
         
-        <div style={{ marginBottom: '3rem' }}>
+        {/* 正確答案提示區塊 - 置於最上層 */}
+        {showCorrectEffect && (
+          <div style={{
+            position: 'absolute',
+            top: '20%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(16, 185, 129, 0.9)',
+            color: 'white',
+            padding: '1rem 2rem',
+            borderRadius: '0.5rem',
+            fontWeight: 'bold',
+            fontSize: '1.5rem',
+            zIndex: 100,  // 確保顯示在最上層
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}>
+            答對了！
+          </div>
+        )}
+        
+        <div style={{ 
+          marginBottom: '3rem',
+          backgroundColor: showCorrectEffect ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          transition: 'background-color 0.5s ease'
+        }}>
           <p style={{ 
             fontSize: '1.5rem', 
             marginBottom: '1.5rem', 
@@ -259,20 +286,26 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center', 
-                  padding: '0.75rem', 
+                  padding: '0.75rem 1rem', 
                   marginBottom: '0.5rem',
                   backgroundColor: '#F9FAFB',
                   borderRadius: '0.5rem',
-                  fontFamily: 'Arial, sans-serif' // 使用預設字體
+                  fontFamily: 'Arial, sans-serif', // 使用預設字體
+                  position: 'relative'
                 }}
               >
-                <div style={{ fontSize: '1.25rem' }}>
-                  <span>{player.name}</span>
-                  <span style={{ marginLeft: '1rem', fontWeight: 'bold' }}>分數：{player.score}</span>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  width: '100%',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{player.name}</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{player.score} 分</span>
                 </div>
                 
                 {player.name === playerName && (
-                  <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
                     <button 
                       onClick={() => quickAnswer()}
                       disabled={currentPlayer !== null}
@@ -286,10 +319,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                         fontWeight: 'bold',
                         cursor: currentPlayer !== null ? 'not-allowed' : 'pointer',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        transition: 'all 0.2s ease',
-                        position: 'absolute',
-                        left: '50%',
-                        transform: 'translateX(-50%)'
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       搶答
