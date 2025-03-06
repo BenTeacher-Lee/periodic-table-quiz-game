@@ -1,7 +1,7 @@
-// src/components/GameArea.js - 整合新的遊戲結束畫面
+// src/components/GameArea.js - 增加正確答案顯示功能
 import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
-import GameVictory from './GameVictory'; // 引入新的遊戲結束組件
+import GameVictory from './GameVictory'; // 確保引入遊戲結束組件
 
 // 內聯 CSS 動畫樣式
 const animationStyles = `
@@ -15,6 +15,12 @@ const animationStyles = `
     50% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 0 30px rgba(255, 165, 0, 0.8); }
     100% { text-shadow: 0 0 5px rgba(255, 215, 0, 0.7); }
   }
+  
+  @keyframes highlight {
+    0% { background-color: rgba(16, 185, 129, 0.3); }
+    50% { background-color: rgba(16, 185, 129, 0.8); }
+    100% { background-color: rgba(16, 185, 129, 0.3); }
+  }
 `;
 
 const GameArea = ({ roomId, playerName, onGameEnd }) => {
@@ -27,7 +33,8 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     quickAnswer,
     checkAnswer,
     restartGame,
-    endGame
+    endGame,
+    showingAnswer // 新增：從 useGame 中獲取是否顯示答案的狀態
   } = useGame(roomId, playerName);
 
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
@@ -62,8 +69,9 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 遊戲結束 - 使用新的遊戲結束畫面
+  // 遊戲結束 - 使用遊戲結束組件
   if (gameStatus === '遊戲結束' && winner) {
+    console.log("顯示勝利畫面:", {gameStatus, winner}); // 調試信息
     return (
       <GameVictory 
         players={players} 
@@ -154,22 +162,22 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           <div style={{ padding: '1rem', borderTop: '1px solid #E5E7EB', textAlign: 'center' }}>
             <button 
               onClick={() => quickAnswer()}
-              disabled={currentPlayer !== null}
+              disabled={currentPlayer !== null || showingAnswer} // 禁用條件添加顯示答案狀態
               style={{ 
                 width: '100%',
                 padding: '0.75rem',
-                backgroundColor: currentPlayer !== null ? '#E5E7EB' : '#10B981',
-                color: currentPlayer !== null ? '#6B7280' : 'white',
+                backgroundColor: (currentPlayer !== null || showingAnswer) ? '#E5E7EB' : '#10B981',
+                color: (currentPlayer !== null || showingAnswer) ? '#6B7280' : 'white',
                 border: 'none',
                 borderRadius: '0.5rem',
                 fontSize: '1.25rem',
                 fontWeight: 'bold',
-                cursor: currentPlayer !== null ? 'not-allowed' : 'pointer',
+                cursor: (currentPlayer !== null || showingAnswer) ? 'not-allowed' : 'pointer',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 transition: 'all 0.2s ease'
               }}
             >
-              搶答
+              {showingAnswer ? '顯示答案中...' : '搶答'}
             </button>
           </div>
         )}
@@ -213,7 +221,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
         ))}
         
         {/* 正確答案提示區塊 - 置於最上層 */}
-        {showCorrectEffect && (
+        {(showCorrectEffect || showingAnswer) && (
           <div style={{
             position: 'absolute',
             top: '20%',
@@ -228,13 +236,13 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
             zIndex: 100,  // 確保顯示在最上層
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
           }}>
-            答對了！
+            {showingAnswer ? '正確答案！' : '答對了！'}
           </div>
         )}
         
         <div style={{ 
           marginBottom: '3rem',
-          backgroundColor: showCorrectEffect ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+          backgroundColor: (showCorrectEffect || showingAnswer) ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
           padding: '1rem',
           borderRadius: '0.5rem',
           transition: 'background-color 0.5s ease'
@@ -254,29 +262,37 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
             gap: '1rem',
             marginBottom: '1.5rem'
           }}>
-            {currentQuestion.options.map((option, index) => (
-              <button 
-                key={index}
-                onClick={() => handleCheckAnswer(index)}
-                disabled={currentPlayer !== playerName}
-                style={{ 
-                  padding: '1.25rem', 
-                  backgroundColor: currentPlayer !== playerName ? '#E5E7EB' : '#3B82F6',
-                  color: currentPlayer !== playerName ? '#6B7280' : 'white',
-                  border: 'none',
-                  borderRadius: '0.75rem',
-                  fontSize: '1.25rem',
-                  fontWeight: 'bold',
-                  cursor: currentPlayer !== playerName ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  fontFamily: 'Arial, sans-serif', // 使用預設字體
-                  transition: 'transform 0.1s ease',
-                  transform: 'scale(1)'
-                }}
-              >
-                {option}
-              </button>
-            ))}
+            {currentQuestion.options.map((option, index) => {
+              // 判斷是否為正確答案並且當前處於顯示答案狀態
+              const isCorrectAnswer = index === currentQuestion.correctAnswer;
+              const highlightCorrect = showingAnswer && isCorrectAnswer;
+              
+              return (
+                <button 
+                  key={index}
+                  onClick={() => handleCheckAnswer(index)}
+                  disabled={currentPlayer !== playerName || showingAnswer} // 在顯示答案時禁用按鈕
+                  style={{ 
+                    padding: '1.25rem', 
+                    backgroundColor: highlightCorrect ? '#10B981' : // 正確答案顯示綠色
+                                     currentPlayer !== playerName ? '#E5E7EB' : '#3B82F6',
+                    color: (highlightCorrect || currentPlayer === playerName) ? 'white' : '#6B7280',
+                    border: highlightCorrect ? '2px solid #059669' : 'none',
+                    borderRadius: '0.75rem',
+                    fontSize: '1.25rem',
+                    fontWeight: 'bold',
+                    cursor: (currentPlayer !== playerName || showingAnswer) ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    fontFamily: 'Arial, sans-serif', // 使用預設字體
+                    transition: 'all 0.2s ease',
+                    animation: highlightCorrect ? 'highlight 1s infinite' : 'none',
+                    transform: highlightCorrect ? 'scale(1.05)' : 'scale(1)'
+                  }}
+                >
+                  {option} {highlightCorrect ? '✓' : ''}
+                </button>
+              );
+            })}
           </div>
           
           {currentPlayer && (
@@ -289,6 +305,23 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
               fontFamily: 'Arial, sans-serif' // 使用預設字體
             }}>
               目前搶答者：<span style={{ fontWeight: 'bold', color: '#D97706' }}>{currentPlayer}</span>
+            </div>
+          )}
+          
+          {/* 顯示答案期間的提示 */}
+          {showingAnswer && (
+            <div style={{ 
+              marginTop: '1rem',
+              textAlign: 'center', 
+              padding: '0.75rem', 
+              backgroundColor: 'rgba(16, 185, 129, 0.2)', 
+              borderRadius: '0.5rem', 
+              fontSize: '1.25rem',
+              fontFamily: 'Arial, sans-serif',
+              color: '#059669',
+              fontWeight: 'bold'
+            }}>
+              正在切換到下一題...
             </div>
           )}
         </div>
