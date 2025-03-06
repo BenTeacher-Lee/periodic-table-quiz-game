@@ -1,12 +1,12 @@
 // src/hooks/useGame.js
 import { useState, useEffect, useCallback } from 'react';
-import firebase from 'firebase/app';
-import 'firebase/firestore';
+import { getFirestore, collection, doc, onSnapshot, updateDoc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { getFirebaseApp } from '../firebase'; // 假設您的 Firebase 配置在這個文件中
 
 export const useGame = (roomId, playerName) => {
   // Firebase 實例
-  const db = firebase.firestore();
-  const firestore = firebase.firestore;
+  const app = getFirebaseApp();
+  const db = getFirestore(app);
   
   // 遊戲狀態
   const [gameStatus, setGameStatus] = useState('等待中');
@@ -21,11 +21,11 @@ export const useGame = (roomId, playerName) => {
   useEffect(() => {
     if (!roomId) return;
     
-    const roomRef = db.collection('rooms').doc(roomId);
+    const roomRef = doc(db, 'rooms', roomId);
     
-    const unsubscribe = roomRef.onSnapshot((doc) => {
-      if (doc.exists) {
-        const roomData = doc.data();
+    const unsubscribe = onSnapshot(roomRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const roomData = snapshot.data();
         setGameStatus(roomData.status || '等待中');
         setCurrentPlayer(roomData.currentPlayer || null);
         setWinner(roomData.winner || null);
@@ -48,9 +48,9 @@ export const useGame = (roomId, playerName) => {
   useEffect(() => {
     if (!roomId) return;
     
-    const playersRef = db.collection('rooms').doc(roomId).collection('players');
+    const playersRef = collection(db, 'rooms', roomId, 'players');
     
-    const unsubscribe = playersRef.onSnapshot((snapshot) => {
+    const unsubscribe = onSnapshot(playersRef, (snapshot) => {
       const playersData = [];
       snapshot.forEach((doc) => {
         playersData.push({ id: doc.id, ...doc.data() });
@@ -61,8 +61,8 @@ export const useGame = (roomId, playerName) => {
       const winningPlayer = playersData.find(player => player.score >= 20);
       if (winningPlayer && gameStatus !== '遊戲結束') {
         // 關鍵改進：確保設置獲勝者並更新遊戲狀態
-        const roomRef = db.collection('rooms').doc(roomId);
-        roomRef.update({
+        const roomRef = doc(db, 'rooms', roomId);
+        updateDoc(roomRef, {
           status: '遊戲結束',
           winner: winningPlayer.name
         });
@@ -77,8 +77,8 @@ export const useGame = (roomId, playerName) => {
     if (!roomId || !playerName || currentPlayer) return;
     
     try {
-      const roomRef = db.collection('rooms').doc(roomId);
-      await roomRef.update({
+      const roomRef = doc(db, 'rooms', roomId);
+      await updateDoc(roomRef, {
         currentPlayer: playerName
       });
     } catch (error) {
@@ -91,25 +91,24 @@ export const useGame = (roomId, playerName) => {
     if (!roomId || !playerName || currentPlayer !== playerName || !currentQuestion) return;
     
     try {
-      const batch = firestore.batch();
-      const roomRef = db.collection('rooms').doc(roomId);
-      const playerRef = db.collection('rooms').doc(roomId).collection('players').doc(playerName);
+      const roomRef = doc(db, 'rooms', roomId);
+      const playerRef = doc(db, 'rooms', roomId, 'players', playerName);
       
       // 檢查答案是否正確
       const isCorrect = selectedIndex === currentQuestion.correctAnswer;
       
       if (isCorrect) {
         // 增加分數
-        const playerDoc = await playerRef.get();
-        const currentScore = playerDoc.exists ? (playerDoc.data().score || 0) : 0;
+        const playerSnapshot = await getDoc(playerRef);
+        const currentScore = playerSnapshot.exists() ? (playerSnapshot.data().score || 0) : 0;
         const newScore = currentScore + 1;
         
-        batch.update(playerRef, { score: newScore });
+        await updateDoc(playerRef, { score: newScore });
         
         // 改進：檢查是否達到勝利條件
         if (newScore >= 20) {
           // 關鍵：確保設置遊戲狀態為結束，並設置獲勝者
-          batch.update(roomRef, {
+          await updateDoc(roomRef, {
             status: '遊戲結束',
             winner: playerName,
             currentPlayer: null
@@ -118,13 +117,13 @@ export const useGame = (roomId, playerName) => {
           // 進入下一題
           const nextQuestionIndex = questionIndex + 1;
           if (nextQuestionIndex < questions.length) {
-            batch.update(roomRef, {
+            await updateDoc(roomRef, {
               questionIndex: nextQuestionIndex,
               currentPlayer: null
             });
           } else {
             // 問題用完，遊戲結束
-            batch.update(roomRef, {
+            await updateDoc(roomRef, {
               status: '遊戲結束',
               currentPlayer: null
             });
@@ -132,32 +131,31 @@ export const useGame = (roomId, playerName) => {
         }
       } else {
         // 答錯，清空當前玩家
-        batch.update(roomRef, {
+        await updateDoc(roomRef, {
           currentPlayer: null
         });
       }
-      
-      await batch.commit();
     } catch (error) {
       console.error('檢查答案時發生錯誤:', error);
     }
-  }, [roomId, playerName, currentPlayer, currentQuestion, questionIndex, questions, db, firestore]);
+  }, [roomId, playerName, currentPlayer, currentQuestion, questionIndex, questions, db]);
   
   // 重新開始遊戲
   const restartGame = useCallback(async () => {
     if (!roomId) return;
     
     try {
-      const batch = firestore.batch();
-      const roomRef = db.collection('rooms').doc(roomId);
+      const playersSnapshot = await getDocs(collection(db, 'rooms', roomId, 'players'));
+      const batch = writeBatch(db);
       
       // 重置所有玩家分數
-      const playersSnapshot = await db.collection('rooms').doc(roomId).collection('players').get();
       playersSnapshot.forEach(doc => {
-        batch.update(doc.ref, { score: 0 });
+        const playerRef = doc.ref;
+        batch.update(playerRef, { score: 0 });
       });
       
       // 更新房間狀態
+      const roomRef = doc(db, 'rooms', roomId);
       batch.update(roomRef, {
         status: '遊戲中',
         currentPlayer: null,
@@ -169,15 +167,15 @@ export const useGame = (roomId, playerName) => {
     } catch (error) {
       console.error('重新開始遊戲時發生錯誤:', error);
     }
-  }, [roomId, db, firestore]);
+  }, [roomId, db]);
   
   // 結束遊戲
   const endGame = useCallback(async () => {
     if (!roomId) return;
     
     try {
-      const roomRef = db.collection('rooms').doc(roomId);
-      await roomRef.update({
+      const roomRef = doc(db, 'rooms', roomId);
+      await updateDoc(roomRef, {
         status: '等待中',
         currentPlayer: null,
         winner: null
