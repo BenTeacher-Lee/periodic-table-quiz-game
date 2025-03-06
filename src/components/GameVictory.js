@@ -1,4 +1,4 @@
-// src/components/GameVictory.js - 新建組件
+// src/components/GameVictory.js
 import React, { useEffect, useState } from 'react';
 
 // 煙花動畫效果

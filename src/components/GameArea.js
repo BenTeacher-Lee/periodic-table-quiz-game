@@ -1,7 +1,7 @@
-// src/components/GameArea.js - 增加正確答案顯示功能
+// src/components/GameArea.js - 增加測試勝利畫面功能
 import React, { useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
-import GameVictory from './GameVictory'; // 確保引入遊戲結束組件
+import GameVictory from './GameVictory'; // 確保正確引入
 
 // 內聯 CSS 動畫樣式
 const animationStyles = `
@@ -34,12 +34,15 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     checkAnswer,
     restartGame,
     endGame,
-    showingAnswer // 新增：從 useGame 中獲取是否顯示答案的狀態
+    showingAnswer,
+    forceGameVictory // 用於測試的函數
   } = useGame(roomId, playerName);
 
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
+  // 用於測試勝利畫面
+  const [testVictoryMode, setTestVictoryMode] = useState(false);
 
   // 處理答案檢查
   const handleCheckAnswer = (index) => {
@@ -60,6 +63,13 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     checkAnswer(index);
   };
 
+  // 測試勝利畫面
+  const handleTestVictory = () => {
+    console.log("測試勝利畫面");
+    setTestVictoryMode(true);
+    forceGameVictory(playerName);
+  };
+
   // 遊戲未開始或無題目
   if (!currentQuestion || (gameStatus !== '遊戲中' && gameStatus !== '遊戲結束')) {
     return (
@@ -69,15 +79,26 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 遊戲結束 - 使用遊戲結束組件
-  if (gameStatus === '遊戲結束' && winner) {
-    console.log("顯示勝利畫面:", {gameStatus, winner}); // 調試信息
+  // 檢查是否有玩家達到20分或測試模式
+  const winningPlayer = players.find(p => p.score >= 20);
+
+  // 遊戲結束或測試勝利畫面
+  if ((gameStatus === '遊戲結束' && winner) || testVictoryMode || winningPlayer) {
+    console.log("顯示勝利畫面:", { gameStatus, winner, testVictoryMode, winningPlayer });
+    
+    // 如果是測試模式或有獲勝玩家但未設置遊戲結束狀態
+    const actualWinner = winner || (winningPlayer ? winningPlayer.name : playerName);
+    
     return (
       <GameVictory 
         players={players} 
-        winner={winner} 
-        onRestart={restartGame} 
+        winner={actualWinner} 
+        onRestart={() => {
+          setTestVictoryMode(false);
+          restartGame();
+        }} 
         onEnd={() => {
+          setTestVictoryMode(false);
           endGame();
           if (onGameEnd) onGameEnd();
         }} 
@@ -220,7 +241,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           </div>
         ))}
         
-        {/* 正確答案提示區塊 - 置於最上層 */}
+        {/* 正確答案提示區塊 */}
         {(showCorrectEffect || showingAnswer) && (
           <div style={{
             position: 'absolute',
@@ -250,7 +271,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           <p style={{ 
             fontSize: '1.5rem', 
             marginBottom: '1.5rem', 
-            fontFamily: 'Arial, sans-serif' // 使用預設字體
+            fontFamily: 'Arial, sans-serif'
           }}>
             <span style={{ fontWeight: 'bold' }}>Question: </span>
             {currentQuestion.question}
@@ -283,7 +304,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                     fontWeight: 'bold',
                     cursor: (currentPlayer !== playerName || showingAnswer) ? 'not-allowed' : 'pointer',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    fontFamily: 'Arial, sans-serif', // 使用預設字體
+                    fontFamily: 'Arial, sans-serif',
                     transition: 'all 0.2s ease',
                     animation: highlightCorrect ? 'highlight 1s infinite' : 'none',
                     transform: highlightCorrect ? 'scale(1.05)' : 'scale(1)'
@@ -302,7 +323,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
               backgroundColor: '#FEF3C7', 
               borderRadius: '0.5rem', 
               fontSize: '1.25rem',
-              fontFamily: 'Arial, sans-serif' // 使用預設字體
+              fontFamily: 'Arial, sans-serif'
             }}>
               目前搶答者：<span style={{ fontWeight: 'bold', color: '#D97706' }}>{currentPlayer}</span>
             </div>
@@ -325,6 +346,27 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
             </div>
           )}
         </div>
+        
+        {/* 測試勝利畫面按鈕 */}
+        <button 
+          onClick={handleTestVictory}
+          style={{ 
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            backgroundColor: '#EF4444',
+            color: 'white',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 'bold',
+            border: 'none',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+            zIndex: 1000
+          }}
+        >
+          測試勝利畫面
+        </button>
       </div>
     </div>
   );
