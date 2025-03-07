@@ -1,5 +1,5 @@
-// src/components/GameArea.js - 優化版
-import React, { useState, useRef } from 'react';
+// src/components/GameArea.js - 修復結算畫面問題
+import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
 import QuestionDisplay from './game/QuestionDisplay';
@@ -28,6 +28,11 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
   const [timer, setTimer] = useState(15); // 假設初始化計時器
+
+  // 監聽遊戲狀態變化
+  useEffect(() => {
+    console.log("GameArea - 遊戲狀態更新:", { gameStatus, winner });
+  }, [gameStatus, winner]);
 
   // 處理答案檢查
   const handleCheckAnswer = (index) => {
@@ -58,7 +63,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   };
 
   // 遊戲未開始或無題目
-  if (!currentQuestion || (gameStatus !== '遊戲中' && gameStatus !== '遊戲結束')) {
+  if (!currentQuestion) {
     return (
       <div className="waiting-container">
         <div className="waiting-message">等待遊戲開始...</div>
@@ -66,12 +71,18 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 遊戲結束
-  if (gameStatus === '遊戲結束' && winner) {
+  // 遊戲結束條件處理 - 修復結算畫面邏輯
+  if (gameStatus === '遊戲結束' || winner) {
+    console.log("顯示勝利畫面:", { gameStatus, winner, players });
+    
+    // 確保有勝利者，如果 winner 為空，則使用分數最高的玩家
+    const actualWinner = winner || 
+      (players.length > 0 ? [...players].sort((a, b) => b.score - a.score)[0].name : playerName);
+    
     return (
       <GameVictory 
         players={players} 
-        winner={winner} 
+        winner={actualWinner} 
         onRestart={restartGame} 
         onEnd={() => {
           endGame();
