@@ -1,4 +1,4 @@
-// src/components/GameVictory.js 優化版
+// src/components/GameVictory.js - 移除底部色塊
 import React, { useEffect, useState } from 'react';
 import Button from './ui/Button';
 import '../styles/animations.css';
@@ -180,9 +180,6 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
               // 根據排名決定樣式
               const isWinner = index === 0;
               
-              // 根據排名決定底座高度
-              const baseHeight = isWinner ? '70px' : index === 1 ? '50px' : '30px';
-              
               // 獎牌顏色
               const medalColor = isWinner ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32';
               
@@ -257,15 +254,6 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                       {player.score} 分
                     </p>
                   </div>
-                  
-                  {/* 基座 */}
-                  <div style={{
-                    backgroundColor: isWinner ? 'var(--warning)' : index === 1 ? 'var(--background-light)' : '#D6BCFA',
-                    height: baseHeight,
-                    width: '80%',
-                    borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
-                    marginTop: 'var(--space-xs)'
-                  }} />
                 </div>
               );
             })}
@@ -311,7 +299,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
             </div>
           )}
 
-          {/* 按鈕組 */}
+          {/* 按鈕組 - 注意：已移除橘色和紫色色塊 */}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
