@@ -1,95 +1,254 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* 以下是新添加的樣式 */
+/* src/index.css 優化版 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600&display=swap');
 
-:root {
-  --primary-color: #4F46E5;
-  --secondary-color: #10B981;
-  --danger-color: #EF4444;
-  --dark-color: #1F2937;
-  --light-color: #F3F4F6;
-}
-
+/* 全局樣式 */
 body {
-  font-family: 'Noto Serif TC', serif;
-  background-color: #EDF1FF;
+  font-family: 'Noto Serif TC', sans-serif;
+  background-color: var(--background);
   margin: 0;
   padding: 0;
+  color: var(--text-primary);
 }
 
-/* 動畫效果 */
-@keyframes scoreIncrease {
-  0% { opacity: 0; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-20px); }
-  100% { opacity: 0; transform: translateY(-40px); }
+* {
+  box-sizing: border-box;
 }
 
-.score-animation {
-  position: absolute;
-  color: #10B981;
-  font-weight: bold;
-  animation: scoreIncrease 1s ease-out forwards;
-}
-
-/* 答對效果 */
-@keyframes correctAnswer {
-  0% { background-color: transparent; }
-  50% { background-color: rgba(16, 185, 129, 0.2); }
-  100% { background-color: transparent; }
-}
-
-.correct-answer {
-  animation: correctAnswer 1s ease;
-}
-
-/* 獲勝效果 */
-.victory-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+/* 應用容器 */
+.app-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.7);
-  z-index: 1000;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.victory-message {
-  background-color: white;
-  padding: 3rem;
-  border-radius: 1rem;
+/* 頭部導航 */
+.app-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  padding: var(--space-lg) 0;
+  box-shadow: var(--shadow-md);
+}
+
+.app-title {
+  font-size: var(--text-3xl);
+  font-weight: bold;
   text-align: center;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: bounceIn 0.75s cubic-bezier(0.215, 0.610, 0.355, 1.000);
+  margin: 0;
 }
 
-@keyframes bounceIn {
-  0% { opacity: 0; transform: scale(0.3); }
-  50% { opacity: 1; transform: scale(1.05); }
-  70% { transform: scale(0.9); }
-  100% { transform: scale(1); }
-}
-
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  animation: confetti 5s ease-in-out infinite;
-}
-
+/* 主內容區域 */
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0 var(--space-md);
 }
 
-/* 標題居中 */
-h1, h2, h3 {
+main {
+  flex: 1;
+}
+
+/* 游戲區域佈局 */
+.game-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  padding: var(--space-md);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.game-sidebar {
+  width: 280px;
+}
+
+.game-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.game-title {
+  font-size: var(--text-2xl);
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+/* 等待頁面 */
+.waiting-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+}
+
+.waiting-message {
+  font-size: var(--text-xl);
+  font-weight: bold;
+  color: var(--text-secondary);
+}
+
+/* 房間管理界面 */
+.room-container {
+  max-width: 1200px;
+  margin: var(--space-xl) auto;
+  padding: 0 var(--space-md);
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+}
+
+.room-welcome {
+  margin-bottom: var(--space-xl);
+}
+
+.room-welcome h2 {
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-xs);
+}
+
+.room-welcome p {
+  color: var(--text-secondary);
+}
+
+.room-creator {
+  margin-bottom: var(--space-xl);
+}
+
+.room-creator h3 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-md);
+}
+
+.room-list {
+  margin-bottom: var(--space-xl);
+}
+
+.room-list h3 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-lg);
   text-align: center;
+}
+
+.room-grid {
+  display: flex;
+  border: 2px solid var(--background-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.room-column {
+  width: 50%;
+  padding: var(--space-lg);
+  background-color: white;
+}
+
+.room-column:first-child {
+  border-right: 2px solid var(--background-light);
+}
+
+.room-column h4 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-md);
+  text-align: center;
+}
+
+.room-empty {
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: var(--text-base);
+}
+
+.room-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.room-item {
+  border: 1px solid var(--background-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  background-color: white;
+}
+
+.room-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.room-item-title {
+  font-size: var(--text-lg);
+  font-weight: bold;
+}
+
+.room-item-info {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+/* 登入表單 */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.login-form {
+  background-color: white;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 28rem;
+}
+
+.login-title {
+  font-size: var(--text-xl);
+  font-weight: bold;
+  margin-bottom: var(--space-md);
+  text-align: center;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .room-grid {
+    flex-direction: column;
+  }
+  
+  .room-column {
+    width: 100%;
+  }
+  
+  .room-column:first-child {
+    border-right: none;
+    border-bottom: 2px solid var(--background-light);
+  }
+  
+  .game-container {
+    flex-direction: column;
+  }
+  
+  .game-sidebar {
+    width: 100%;
+    order: 2;
+  }
+  
+  .game-content {
+    order: 1;
+  }
 }

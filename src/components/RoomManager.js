@@ -1,7 +1,11 @@
-// src/components/RoomManager.js
+// src/components/RoomManager.js 優化版
 import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
+import Button from './ui/Button';
+import Card, { CardHeader, CardBody, CardFooter } from './ui/Card';
+import Badge from './ui/Badge';
+import '../styles/components.css';
 
 const RoomManager = ({ onManageQuestions }) => {
   const [playerName, setPlayerName] = useState('');
@@ -92,57 +96,24 @@ const RoomManager = ({ onManageQuestions }) => {
   // 如果尚未設置名稱
   if (!isNameSet) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '100vh', 
-        backgroundColor: '#EFF6FF' 
-      }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '2rem', 
-          borderRadius: '0.5rem', 
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-          width: '100%',
-          maxWidth: '28rem'
-        }}>
-          <h2 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 'bold', 
-            marginBottom: '1rem', 
-            textAlign: 'center' 
-          }}>設定暱稱</h2>
+      <div className="login-container">
+        <div className="login-form">
+          <h2 className="login-title">設定暱稱</h2>
           <input 
             type="text" 
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             placeholder="請輸入暱稱" 
-            style={{ 
-              width: '100%', 
-              padding: '0.75rem', 
-              marginBottom: '1.5rem', 
-              border: '1px solid #D1D5DB', 
-              borderRadius: '0.5rem',
-              fontSize: '1.125rem'
-            }}
+            className="input"
+            style={{ marginBottom: 'var(--space-lg)' }}
           />
-          <button 
+          <Button 
             onClick={validatePlayerName}
-            style={{ 
-              width: '100%', 
-              backgroundColor: '#10B981', 
-              color: 'white', 
-              padding: '0.75rem', 
-              borderRadius: '0.5rem',
-              fontSize: '1.125rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
-            }}
+            variant="secondary"
+            isFullWidth
           >
             確認暱稱
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -151,8 +122,8 @@ const RoomManager = ({ onManageQuestions }) => {
   // 正在加載房間
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4B5563' }}>載入中...</div>
+      <div className="waiting-container">
+        <div className="waiting-message">載入中...</div>
       </div>
     );
   }
@@ -160,389 +131,207 @@ const RoomManager = ({ onManageQuestions }) => {
   // 在房間中但未開始遊戲
   if (currentRoom) {
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+      <div className="room-container">
         <div style={{ position: 'absolute', top: '6rem', right: '2rem' }}>
-          <button 
+          <Button 
             onClick={onManageQuestions}
-            style={{ 
-              backgroundColor: '#3B82F6', 
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '0.5rem',
-              fontSize: '1.25rem',
-              fontWeight: 'bold',
-              marginRight: '0.5rem',
-              cursor: 'pointer',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}
+            variant="primary"
+            style={{ marginRight: 'var(--space-md)' }}
           >
             題目管理
-          </button>
-          <button 
+          </Button>
+          <Button 
             onClick={handleLogout}
-            style={{ 
-              backgroundColor: '#EF4444', 
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '0.5rem',
-              fontSize: '1.25rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}
+            variant="danger"
           >
             登出
-          </button>
+          </Button>
         </div>
         
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '2rem', 
-          borderRadius: '0.5rem', 
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          marginTop: '2rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>房間：{currentRoom.name}</h2>
-          </div>
+        <Card style={{ marginTop: 'var(--space-lg)' }}>
+          <CardHeader>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 'bold' }}>
+                房間：{currentRoom.name}
+              </h2>
+            </div>
+          </CardHeader>
           
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>玩家列表</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <CardBody>
+            <h3 style={{ 
+              fontSize: 'var(--text-xl)', 
+              fontWeight: 'bold', 
+              marginBottom: 'var(--space-md)' 
+            }}>
+              玩家列表
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
               {currentRoom.playerArray && currentRoom.playerArray.map((player, index) => (
                 <div 
                   key={index} 
-                  style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    padding: '1rem', 
-                    borderBottom: '1px solid #E5E7EB' 
-                  }}
+                  className="scoreboard-item"
                 >
-                  <span style={{ fontSize: '1.25rem' }}>
+                  <span style={{ fontSize: 'var(--text-lg)' }}>
                     {player.name} 
                     {player.name === currentRoom.host && (
-                      <span style={{ marginLeft: '0.5rem', color: '#3B82F6', fontWeight: 'bold' }}>(房主)</span>
+                      <Badge 
+                        variant="primary" 
+                        style={{ marginLeft: 'var(--space-sm)' }}
+                      >
+                        房主
+                      </Badge>
                     )}
                   </span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>分數：{player.score}</span>
+                  <span style={{ 
+                    fontSize: 'var(--text-lg)', 
+                    fontWeight: 'bold' 
+                  }}>
+                    分數：{player.score}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
+          </CardBody>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button 
+          <CardFooter style={{ display: 'flex', gap: 'var(--space-md)' }}>
+            <Button 
               onClick={handleLeaveRoom}
-              style={{ 
-                flex: 1, 
-                backgroundColor: '#EF4444', 
-                color: 'white',
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                fontSize: '1.25rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
+              variant="danger"
+              style={{ flex: 1 }}
             >
               離開房間
-            </button>
+            </Button>
             {currentRoom.host === playerName && (
-              <button 
+              <Button 
                 onClick={handleStartGame}
-                style={{ 
-                  flex: 1, 
-                  backgroundColor: '#10B981', 
-                  color: 'white',
-                  padding: '1rem',
-                  borderRadius: '0.5rem',
-                  fontSize: '1.25rem',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
+                variant="secondary"
+                style={{ flex: 1 }}
               >
                 開始遊戲
-              </button>
+              </Button>
             )}
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
 
   // 房間列表
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+    <div className="room-container">
       {/* 頂部按鈕 */}
       <div style={{ position: 'absolute', top: '6rem', right: '2rem' }}>
-        <button 
+        <Button 
           onClick={onManageQuestions}
-          style={{ 
-            backgroundColor: '#3B82F6', 
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            fontSize: '1.25rem',
-            fontWeight: 'bold',
-            marginRight: '0.5rem',
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}
+          variant="primary"
+          style={{ marginRight: 'var(--space-md)' }}
         >
           題目管理
-        </button>
-        <button 
+        </Button>
+        <Button 
           onClick={handleLogout}
-          style={{ 
-            backgroundColor: '#EF4444', 
-            color: 'white',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '0.5rem',
-            fontSize: '1.25rem',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-          }}
+          variant="danger"
         >
           登出
-        </button>
+        </Button>
       </div>
       
-      {/* 歡迎信息區域 - 左對齊 */}
-      <div style={{ 
-        marginBottom: '1.5rem',
-        textAlign: 'left'
-      }}>
-        <h2 style={{ 
-          fontSize: '1.875rem', 
-          fontWeight: 'bold',
-          textAlign: 'left'
-        }}>
-          歡迎, {playerName}!
-        </h2>
-        <p style={{ 
-          color: '#6B7280',
-          textAlign: 'left'
-        }}>
-          您可以創建新房間或加入現有房間
-        </p>
+      {/* 歡迎信息區域 */}
+      <div className="room-welcome">
+        <h2>歡迎, {playerName}!</h2>
+        <p>您可以創建新房間或加入現有房間</p>
       </div>
       
-      {/* 創建新房間區域 - 左對齊 */}
-      <div style={{ 
-        textAlign: 'left',
-        marginBottom: '2rem' 
-      }}>
-        <h3 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 'bold', 
-          marginBottom: '0.5rem',
-          textAlign: 'left'
-        }}>
-          創建新房間
-        </h3>
-        <div style={{ 
-          display: 'flex',
-          maxWidth: '500px', 
-          width: '100%' 
-        }}>
+      {/* 創建新房間區域 */}
+      <div className="room-creator">
+        <h3>創建新房間</h3>
+        <div className="input-group" style={{ maxWidth: '500px' }}>
           <input 
             type="text" 
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
             placeholder="輸入房間名稱" 
-            style={{ 
-              flexGrow: 1, 
-              padding: '1rem', 
-              borderTopLeftRadius: '0.5rem', 
-              borderBottomLeftRadius: '0.5rem',
-              fontSize: '1.25rem',
-              border: '1px solid #ccc'
-            }}
+            className="input"
           />
-          <button 
+          <Button 
             onClick={handleCreateRoom}
-            style={{ 
-              backgroundColor: '#3B82F6', 
-              color: 'white', 
-              padding: '1rem 2rem', 
-              borderTopRightRadius: '0.5rem', 
-              borderBottomRightRadius: '0.5rem',
-              fontSize: '1.25rem',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
+            variant="primary"
           >
             創建
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* 房間列表 */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ 
-          fontSize: '1.5rem', 
-          fontWeight: 'bold', 
-          marginBottom: '1rem', 
-          textAlign: 'center' 
-        }}>
-          房間列表
-        </h3>
-        <div style={{ 
-          border: '2px solid #E5E7EB', 
-          borderRadius: '0.5rem', 
-          overflow: 'hidden',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-        }}>
-          <div style={{ display: 'flex' }}>
-            {/* 等待中房間 */}
-            <div style={{ 
-              width: '50%', 
-              padding: '1.5rem', 
-              backgroundColor: 'white',
-              borderRight: '2px solid #E5E7EB'
-            }}>
-              <h4 style={{ 
-                fontSize: '1.25rem', 
-                fontWeight: 'bold', 
-                marginBottom: '1rem', 
-                color: '#2563EB',
-                textAlign: 'center'
-              }}>
-                等待中房間
-              </h4>
-              
-              {waitingRooms.length === 0 ? (
-                <p style={{ color: '#6B7280', fontSize: '1.125rem', textAlign: 'center' }}>目前沒有等待中的房間</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {waitingRooms.map(room => (
-                    <div 
-                      key={room.id} 
-                      style={{ 
-                        border: '1px solid #E5E7EB', 
-                        borderRadius: '0.5rem', 
-                        padding: '1rem',
-                        backgroundColor: 'white'
-                      }}
-                    >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        marginBottom: '0.5rem' 
-                      }}>
-                        <h5 style={{ fontSize: '1.125rem', fontWeight: 'bold' }}>{room.name}</h5>
-                        <span style={{ 
-                          backgroundColor: '#DBEAFE', 
-                          color: '#1E40AF', 
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.875rem',
-                          fontWeight: '600'
-                        }}>
-                          {room.playerArray ? room.playerArray.length : 0}/4 人
-                        </span>
-                      </div>
-                      <div style={{ color: '#6B7280', marginBottom: '0.5rem' }}>
-                        <p>房主：{room.host}</p>
-                      </div>
-                      <button 
-                        onClick={() => handleJoinRoom(room.id)}
-                        disabled={!room.playerArray || room.playerArray.length >= 4}
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.75rem',
-                          borderRadius: '0.5rem',
-                          fontSize: '1.125rem',
-                          fontWeight: 'bold',
-                          cursor: (!room.playerArray || room.playerArray.length >= 4) ? 'not-allowed' : 'pointer',
-                          backgroundColor: (!room.playerArray || room.playerArray.length >= 4) ? '#D1D5DB' : '#10B981',
-                          color: (!room.playerArray || room.playerArray.length >= 4) ? '#6B7280' : 'white'
-                        }}
+      <div className="room-list">
+        <h3>房間列表</h3>
+        <div className="room-grid">
+          {/* 等待中房間 */}
+          <div className="room-column">
+            <h4 style={{ color: 'var(--primary)' }}>等待中房間</h4>
+            
+            {waitingRooms.length === 0 ? (
+              <p className="room-empty">目前沒有等待中的房間</p>
+            ) : (
+              <div className="room-items">
+                {waitingRooms.map(room => (
+                  <div key={room.id} className="room-item">
+                    <div className="room-item-header">
+                      <h5 className="room-item-title">{room.name}</h5>
+                      <Badge 
+                        variant="primary"
                       >
-                        {!room.playerArray || room.playerArray.length >= 4 ? '房間已滿' : '加入'}
-                      </button>
+                        {room.playerArray ? room.playerArray.length : 0}/4 人
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="room-item-info">
+                      <p>房主：{room.host}</p>
+                    </div>
+                    <Button 
+                      onClick={() => handleJoinRoom(room.id)}
+                      disabled={!room.playerArray || room.playerArray.length >= 4}
+                      variant="secondary"
+                      isFullWidth
+                    >
+                      {!room.playerArray || room.playerArray.length >= 4 ? '房間已滿' : '加入'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* 遊戲進行中房間 */}
-            <div style={{ 
-              width: '50%', 
-              padding: '1.5rem', 
-              backgroundColor: 'white' 
-            }}>
-              <h4 style={{ 
-                fontSize: '1.25rem', 
-                fontWeight: 'bold', 
-                marginBottom: '1rem', 
-                color: '#059669',
-                textAlign: 'center'
-              }}>
-                遊戲進行中房間
-              </h4>
-              
-              {playingRooms.length === 0 ? (
-                <p style={{ color: '#6B7280', fontSize: '1.125rem', textAlign: 'center' }}>目前沒有進行中的房間</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {playingRooms.map(room => (
-                    <div 
-                      key={room.id} 
-                      style={{ 
-                        border: '1px solid #E5E7EB', 
-                        borderRadius: '0.5rem', 
-                        padding: '1rem',
-                        backgroundColor: '#F9FAFB'
-                      }}
-                    >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        marginBottom: '0.5rem' 
-                      }}>
-                        <h5 style={{ fontSize: '1.125rem', fontWeight: 'bold' }}>{room.name}</h5>
-                        <span style={{ 
-                          backgroundColor: '#D1FAE5', 
-                          color: '#065F46', 
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.875rem',
-                          fontWeight: '600'
-                        }}>
-                          {room.playerArray ? room.playerArray.length : 0}/4 人
-                        </span>
-                      </div>
-                      <div style={{ color: '#6B7280', marginBottom: '0.5rem' }}>
-                        <p>房主：{room.host}</p>
-                      </div>
-                      <button 
-                        disabled
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.75rem',
-                          borderRadius: '0.5rem',
-                          fontSize: '1.125rem',
-                          fontWeight: 'bold',
-                          backgroundColor: '#D1D5DB',
-                          color: '#6B7280',
-                          cursor: 'not-allowed'
-                        }}
-                      >
-                        遊戲進行中
-                      </button>
+          {/* 遊戲進行中房間 */}
+          <div className="room-column">
+            <h4 style={{ color: 'var(--success)' }}>遊戲進行中房間</h4>
+            
+            {playingRooms.length === 0 ? (
+              <p className="room-empty">目前沒有進行中的房間</p>
+            ) : (
+              <div className="room-items">
+                {playingRooms.map(room => (
+                  <div key={room.id} className="room-item" style={{ backgroundColor: 'var(--background-light)' }}>
+                    <div className="room-item-header">
+                      <h5 className="room-item-title">{room.name}</h5>
+                      <Badge variant="success">
+                        {room.playerArray ? room.playerArray.length : 0}/4 人
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="room-item-info">
+                      <p>房主：{room.host}</p>
+                    </div>
+                    <Button 
+                      disabled
+                      variant="secondary"
+                      isFullWidth
+                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                    >
+                      遊戲進行中
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

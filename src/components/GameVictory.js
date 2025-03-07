@@ -1,5 +1,7 @@
-// src/components/GameVictory.js - 修正版本
+// src/components/GameVictory.js 優化版
 import React, { useEffect, useState } from 'react';
+import Button from './ui/Button';
+import '../styles/animations.css';
 
 // 煙花動畫效果
 const Firework = ({ top, left, color1, color2 }) => {
@@ -111,8 +113,8 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
       <div 
         style={{ 
           backgroundColor: 'white', 
-          borderRadius: '1rem', 
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          borderRadius: 'var(--radius-xl)', 
+          boxShadow: 'var(--shadow-xl)',
           width: '90%',
           maxWidth: '800px',
           opacity: showAnimation ? 1 : 0,
@@ -123,47 +125,45 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
       >
         {/* 標題區域 */}
         <div style={{ 
-          background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 100%)',
-          padding: '2rem',
+          background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+          padding: 'var(--space-xl)',
           textAlign: 'center',
           color: 'white',
           position: 'relative'
         }}>
           <h1 style={{ 
-            fontSize: '2.5rem', 
+            fontSize: 'var(--text-4xl)', 
             fontWeight: 'bold',
-            marginBottom: '0.5rem',
+            marginBottom: 'var(--space-sm)',
             textShadow: '0 2px 10px rgba(0,0,0,0.3)',
             animation: 'pulse 2s infinite'
           }}>
             🏆 遊戲結束 🏆
           </h1>
           <p style={{ 
-            fontSize: '1.5rem',
+            fontSize: 'var(--text-xl)',
             opacity: 0.9,
             fontWeight: 'bold'
           }}>
-            恭喜 <span style={{ 
+            恭喜 <span className="gold-glow" style={{ 
               color: '#FFD700', 
               fontWeight: 'bold',
-              textShadow: '0 0 10px rgba(255,215,0,0.7)',
-              fontSize: '1.8rem',
-              animation: 'glow 1.5s ease-in-out infinite alternate'
+              fontSize: 'var(--text-2xl)',
             }}>{winner}</span> 獲得勝利！
           </p>
         </div>
 
         {/* 前三名計分榜 */}
         <div style={{
-          padding: '2rem',
-          background: 'linear-gradient(to bottom, #f9fafb, #f3f4f6)'
+          padding: 'var(--space-xl)',
+          background: 'linear-gradient(to bottom, var(--background-light), #f3f4f6)'
         }}>
           <h2 style={{ 
             textAlign: 'center', 
-            fontSize: '1.8rem', 
+            fontSize: 'var(--text-2xl)', 
             fontWeight: 'bold',
-            marginBottom: '2rem',
-            color: '#1F2937'
+            marginBottom: 'var(--space-xl)',
+            color: 'var(--text-primary)'
           }}>
             優勝者排行榜
           </h2>
@@ -172,8 +172,8 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
             display: 'flex',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            gap: '2rem',
-            marginBottom: '2rem'
+            gap: 'var(--space-xl)',
+            marginBottom: 'var(--space-xl)'
           }}>
             {/* 前三名玩家顯示 */}
             {topThreePlayers.map((player, index) => {
@@ -194,7 +194,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                 flex: '1',
                 minWidth: index === 0 ? '250px' : '200px',
                 maxWidth: index === 0 ? '350px' : '300px',
-                animation: isWinner ? 'bounce 1s ease infinite' : 'none', // 修正動畫表達式
+                animation: isWinner ? 'float 3s ease-in-out infinite' : 'none',
                 position: 'relative',
                 order: index === 0 ? 2 : index === 1 ? 1 : 3, // 第一名在中間
               };
@@ -216,42 +216,42 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 'bold',
-                    fontSize: '1.2rem',
+                    fontSize: 'var(--text-lg)',
                     zIndex: 10,
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    boxShadow: 'var(--shadow-md)'
                   }}>
                     {index + 1}
                   </div>
                   
                   {/* 獎牌/獎盃圖標 */}
-                  <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ marginBottom: 'var(--space-md)' }}>
                     {isWinner ? <TrophyIcon /> : <MedalIcon color={medalColor} />}
                   </div>
                   
                   {/* 玩家名稱 */}
                   <div style={{
-                    backgroundColor: isWinner ? '#FEF3C7' : 'white',
-                    padding: '1.5rem',
-                    borderRadius: '0.75rem',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                    backgroundColor: isWinner ? 'var(--warning-light)' : 'white',
+                    padding: 'var(--space-lg)',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: 'var(--shadow-lg)',
                     textAlign: 'center',
                     width: '100%',
-                    border: isWinner ? '2px solid #FFD700' : '1px solid #E5E7EB',
-                    transform: isWinner ? 'translateY(-10px)' : 'translateY(0px)', // 修正 transform 表達式
+                    border: isWinner ? `2px solid #FFD700` : `1px solid var(--background-light)`,
+                    transform: isWinner ? 'translateY(-10px)' : 'translateY(0px)',
                     zIndex: isWinner ? 10 : 5
                   }}>
                     <h3 style={{ 
-                      fontSize: isWinner ? '1.5rem' : '1.25rem', 
+                      fontSize: isWinner ? 'var(--text-xl)' : 'var(--text-lg)', 
                       fontWeight: 'bold',
-                      color: isWinner ? '#D97706' : '#1F2937',
-                      marginBottom: '0.5rem'
+                      color: isWinner ? 'var(--warning-dark)' : 'var(--text-primary)',
+                      marginBottom: 'var(--space-sm)'
                     }}>
                       {player.name}
                     </h3>
                     <p style={{
-                      fontSize: isWinner ? '2rem' : '1.75rem',
+                      fontSize: isWinner ? 'var(--text-2xl)' : 'var(--text-xl)',
                       fontWeight: 'bold',
-                      color: isWinner ? '#B45309' : '#4B5563',
+                      color: isWinner ? 'var(--warning-dark)' : 'var(--text-secondary)',
                       fontFamily: 'monospace'
                     }}>
                       {player.score} 分
@@ -260,11 +260,11 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
                   
                   {/* 基座 */}
                   <div style={{
-                    backgroundColor: isWinner ? '#FCD34D' : index === 1 ? '#E5E7EB' : '#D6BCFA',
+                    backgroundColor: isWinner ? 'var(--warning)' : index === 1 ? 'var(--background-light)' : '#D6BCFA',
                     height: baseHeight,
                     width: '80%',
-                    borderRadius: '0.5rem 0.5rem 0 0',
-                    marginTop: '-0.5rem'
+                    borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+                    marginTop: 'var(--space-xs)'
                   }} />
                 </div>
               );
@@ -275,32 +275,32 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
           {sortedPlayers.length > 3 && (
             <div style={{
               backgroundColor: 'white',
-              borderRadius: '0.75rem',
-              padding: '1rem',
-              marginBottom: '2rem',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-md)',
+              marginBottom: 'var(--space-xl)',
+              boxShadow: 'var(--shadow-md)'
             }}>
               <h3 style={{ 
-                fontSize: '1.25rem', 
+                fontSize: 'var(--text-lg)', 
                 fontWeight: 'bold', 
-                marginBottom: '1rem',
+                marginBottom: 'var(--space-md)',
                 textAlign: 'center',
-                color: '#4B5563'
+                color: 'var(--text-secondary)'
               }}>
                 其他玩家
               </h3>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
                 {sortedPlayers.slice(3).map((player, index) => (
                   <div 
                     key={player.name} 
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      padding: '0.75rem 1rem',
-                      backgroundColor: '#F9FAFB',
-                      borderRadius: '0.5rem',
-                      fontSize: '1.1rem'
+                      padding: 'var(--space-md) var(--space-md)',
+                      backgroundColor: 'var(--background-light)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--text-base)'
                     }}
                   >
                     <span>#{index + 4} {player.name}</span>
@@ -315,46 +315,26 @@ const GameVictory = ({ players, winner, onRestart, onEnd }) => {
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
-            gap: '1rem',
+            gap: 'var(--space-md)',
             flexWrap: 'wrap'
           }}>
-            <button 
+            <Button 
               onClick={onRestart}
-              style={{ 
-                backgroundColor: '#3B82F6', 
-                color: 'white', 
-                padding: '1rem 2rem', 
-                borderRadius: '0.5rem',
-                fontSize: '1.25rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                border: 'none',
-                transition: 'all 0.2s',
-                minWidth: '180px'
-              }}
+              variant="primary"
+              size="lg"
+              style={{ minWidth: '180px' }}
             >
               再來一局
-            </button>
+            </Button>
             
-            <button 
+            <Button 
               onClick={onEnd}
-              style={{ 
-                backgroundColor: '#EF4444', 
-                color: 'white', 
-                padding: '1rem 2rem', 
-                borderRadius: '0.5rem',
-                fontSize: '1.25rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                border: 'none',
-                transition: 'all 0.2s',
-                minWidth: '180px'
-              }}
+              variant="danger"
+              size="lg"
+              style={{ minWidth: '180px' }}
             >
               結束遊戲
-            </button>
+            </Button>
           </div>
         </div>
       </div>

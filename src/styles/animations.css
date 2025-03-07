@@ -1,0 +1,156 @@
+/* src/styles/animations.css */
+@import './variables.css';
+
+/* 淡入淡出 */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-normal) ease forwards;
+}
+
+.fade-out {
+  animation: fadeOut var(--transition-normal) ease forwards;
+}
+
+/* 搖晃效果 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.8s ease;
+}
+
+/* 脈動效果 */
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* 浮動效果 */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 分數增加動畫 */
+@keyframes scoreIncrease {
+  0% { opacity: 0; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-20px); }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+
+.score-animation {
+  position: absolute;
+  color: var(--success);
+  font-weight: bold;
+  animation: scoreIncrease 1s ease-out forwards;
+}
+
+/* 警告閃爍 */
+@keyframes warningFlash {
+  0%, 100% { background-color: var(--danger); }
+  50% { background-color: var(--danger-light); }
+}
+
+.warning-flash {
+  animation: warningFlash 1s infinite;
+}
+
+/* 答對效果 */
+@keyframes correctAnswer {
+  0% { background-color: transparent; }
+  50% { background-color: rgba(16, 185, 129, 0.2); }
+  100% { background-color: transparent; }
+}
+
+.correct-answer {
+  animation: correctAnswer 1s ease;
+}
+
+/* 彈入效果 */
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.bounce-in {
+  animation: bounceIn 0.75s cubic-bezier(0.215, 0.610, 0.355, 1.000);
+}
+
+/* 煙花效果 */
+@keyframes firework {
+  0% { transform: scale(0); opacity: 1; }
+  50% { opacity: 1; }
+  100% { transform: scale(10); opacity: 0; }
+}
+
+/* 旋轉效果 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 2s linear infinite;
+}
+
+/* 金色閃爍 */
+@keyframes goldGlow {
+  from { text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #FFD700, 0 0 20px #FFD700; }
+  to { text-shadow: 0 0 10px #fff, 0 0 20px #FFD700, 0 0 30px #FFD700, 0 0 40px #FFD700; }
+}
+
+.gold-glow {
+  animation: goldGlow 1.5s ease-in-out infinite alternate;
+}
+
+/* 移入效果 */
+@keyframes slideInRight {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s forwards;
+}
+
+@keyframes slideInLeft {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s forwards;
+}
+
+@keyframes slideInUp {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.slide-in-up {
+  animation: slideInUp 0.5s forwards;
+}
