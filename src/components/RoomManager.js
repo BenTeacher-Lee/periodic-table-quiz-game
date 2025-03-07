@@ -1,4 +1,4 @@
-// src/components/RoomManager.js 優化版
+// src/components/RoomManager.js 優化版 - 增加測試按鈕
 import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
@@ -7,7 +7,7 @@ import Card, { CardHeader, CardBody, CardFooter } from './ui/Card';
 import Badge from './ui/Badge';
 import '../styles/components.css';
 
-const RoomManager = ({ onManageQuestions }) => {
+const RoomManager = ({ onManageQuestions, onTestVictory }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
@@ -141,6 +141,13 @@ const RoomManager = ({ onManageQuestions }) => {
             題目管理
           </Button>
           <Button 
+            onClick={onTestVictory}
+            variant="primary"
+            style={{ marginRight: 'var(--space-md)' }}
+          >
+            測試勝利畫面
+          </Button>
+          <Button 
             onClick={handleLogout}
             variant="danger"
           >
@@ -227,6 +234,13 @@ const RoomManager = ({ onManageQuestions }) => {
           style={{ marginRight: 'var(--space-md)' }}
         >
           題目管理
+        </Button>
+        <Button 
+          onClick={onTestVictory}
+          variant="primary"
+          style={{ marginRight: 'var(--space-md)' }}
+        >
+          測試勝利畫面
         </Button>
         <Button 
           onClick={handleLogout}
