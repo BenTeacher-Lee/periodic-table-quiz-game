@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 修正版本
+// src/hooks/useGame.js - 修復結算畫面問題
 import { useState, useEffect } from 'react';
 import { ref, onValue, update, get, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -16,10 +16,17 @@ export const useGame = (roomId, playerName) => {
   useEffect(() => {
     if (!roomId) return;
 
+    console.log('Setting up room listener for:', roomId);
+    
     const roomRef = ref(database, `rooms/${roomId}`);
     const unsubscribe = onValue(roomRef, (snapshot) => {
       const data = snapshot.val();
-      if (!data) return;
+      if (!data) {
+        console.log('No room data found');
+        return;
+      }
+      
+      console.log('Room data updated:', data);
       
       // 更新界面狀態
       setCurrentQuestion(data.currentQuestion || null);
@@ -27,6 +34,8 @@ export const useGame = (roomId, playerName) => {
       setGameStatus(data.status || 'waiting');
       setWinner(data.winner || null);
       setShowingAnswer(data.showingAnswer || false);
+      
+      console.log('Game status:', data.status, 'Winner:', data.winner);
       
       // 同步已使用過的題目
       setUsedQuestions(data.usedQuestions || []);
@@ -38,23 +47,20 @@ export const useGame = (roomId, playerName) => {
           score: data.players[name].score
         }));
         setPlayers(playerList);
-      }
-      
-      // 檢查是否有玩家達到勝利條件（20分）
-      if (data.players) {
-        const playerScores = Object.entries(data.players).map(([name, data]) => ({
-          name,
-          score: data.score
-        }));
         
-        const winningPlayer = playerScores.find(player => player.score >= 20);
+        // 檢查是否有玩家達到勝利條件（20分）
+        const winningPlayer = playerList.find(player => player.score >= 20);
         if (winningPlayer && data.status !== '遊戲結束') {
-          console.log("檢測到勝利條件，更新遊戲狀態");
+          console.log("檢測到勝利條件，更新遊戲狀態:", winningPlayer.name);
           // 如果有玩家達到20分但遊戲狀態不是"遊戲結束"，則更新遊戲狀態
           update(roomRef, {
             status: '遊戲結束',
             winner: winningPlayer.name,
             lastActivity: serverTimestamp()
+          }).then(() => {
+            console.log("遊戲結束狀態已更新");
+          }).catch(error => {
+            console.error("更新遊戲狀態錯誤:", error);
           });
         }
       }
@@ -67,6 +73,8 @@ export const useGame = (roomId, playerName) => {
   const quickAnswer = () => {
     if (!roomId || currentPlayer || showingAnswer) return; // 防止在展示答案時搶答
     
+    console.log('Player attempting to answer:', playerName);
+    
     const roomRef = ref(database, `rooms/${roomId}`);
     update(roomRef, { 
       currentPlayer: playerName,
@@ -76,6 +84,8 @@ export const useGame = (roomId, playerName) => {
 
   // 從Firebase數據庫獲取不重複的隨機題目
   const getRandomQuestion = async () => {
+    console.log('Getting random question');
+    
     const questionsRef = ref(database, 'questions');
     try {
       // 獲取所有題目
@@ -83,6 +93,7 @@ export const useGame = (roomId, playerName) => {
       const data = snapshot.val();
       
       if (!data) {
+        console.log('No questions found, using default question');
         // 如果沒有找到題目，使用默認題目
         const defaultQuestion = {
           question: '氫元素在元素週期表中的原子序數為多少？',
@@ -105,24 +116,34 @@ export const useGame = (roomId, playerName) => {
         ...data[key]
       }));
       
+      console.log('Total questions:', questionsArray.length);
+      
       // 獲取當前房間已使用的題目
       const roomRef = ref(database, `rooms/${roomId}`);
       const roomSnapshot = await get(roomRef);
       const roomData = roomSnapshot.val() || {};
       const currentUsedQuestions = roomData.usedQuestions || [];
       
+      console.log('Used questions:', currentUsedQuestions.length);
+      
       // 篩選掉已用過的題目
       const unusedQuestions = questionsArray.filter(
         question => !currentUsedQuestions.includes(question.id)
       );
       
+      console.log('Unused questions:', unusedQuestions.length);
+      
       // 如果所有題目都已使用過，重置已使用題目列表
       if (unusedQuestions.length === 0) {
+        console.log('All questions used, resetting used questions list');
+        
         update(ref(database, `rooms/${roomId}`), { usedQuestions: [] });
         
         // 隨機選擇一個題目（因為已重置列表）
         const randomIndex = Math.floor(Math.random() * questionsArray.length);
         const randomQuestion = questionsArray[randomIndex];
+        
+        console.log('Selected question:', randomQuestion.question);
         
         // 更新房間的當前題目和已使用題目列表
         update(ref(database, `rooms/${roomId}`), {
@@ -140,6 +161,8 @@ export const useGame = (roomId, playerName) => {
         // 從未使用的題目中隨機選擇
         const randomIndex = Math.floor(Math.random() * unusedQuestions.length);
         const randomQuestion = unusedQuestions[randomIndex];
+        
+        console.log('Selected question:', randomQuestion.question);
         
         // 更新房間的當前題目和已使用題目列表
         update(ref(database, `rooms/${roomId}`), {
@@ -174,7 +197,15 @@ export const useGame = (roomId, playerName) => {
 
   // 檢查答案
   const checkAnswer = async (selectedOption) => {
-    if (!roomId || currentPlayer !== playerName || !currentQuestion) return;
+    if (!roomId || currentPlayer !== playerName || !currentQuestion) {
+      console.log('Cannot check answer:', 
+                  !roomId ? 'No roomId' : 
+                  currentPlayer !== playerName ? 'Not current player' : 
+                  'No current question');
+      return;
+    }
+    
+    console.log('Checking answer, selected option:', selectedOption, 'correct answer:', currentQuestion.correctAnswer);
     
     // 更新活動時間
     update(ref(database, `rooms/${roomId}`), { 
@@ -188,39 +219,52 @@ export const useGame = (roomId, playerName) => {
       const currentScore = (snapshot.val() && snapshot.val().score) || 0;
       const newScore = currentScore + 1;
       
-      // 先更新分數
-      update(playerRef, { score: newScore });
+      console.log('Correct answer! Current score:', currentScore, 'new score:', newScore);
       
-      // 設置顯示答案狀態
-      update(ref(database, `rooms/${roomId}`), {
-        showingAnswer: true,
-        lastActivity: serverTimestamp()
-      });
-      
-      // 檢查是否獲勝
-      if (newScore >= 20) {
-        console.log("玩家達到20分，設置遊戲結束狀態");
-        // 立即設置遊戲結束狀態
-        update(ref(database, `rooms/${roomId}`), { 
-          status: '遊戲結束',
-          winner: playerName,
+      // 更新分數的函數
+      const updateScoreAndCheckWin = async () => {
+        // 先更新分數
+        await update(playerRef, { score: newScore });
+        console.log('Score updated');
+        
+        // 設置顯示答案狀態
+        await update(ref(database, `rooms/${roomId}`), {
+          showingAnswer: true,
           lastActivity: serverTimestamp()
         });
-      } else {
-        // 延遲2秒後獲取新題目
-        setTimeout(async () => {
-          // 再次檢查房間狀態，確保遊戲仍在進行中
-          const currentRoomRef = ref(database, `rooms/${roomId}`);
-          const currentRoomSnapshot = await get(currentRoomRef);
-          const currentRoomData = currentRoomSnapshot.val();
-          
-          if (currentRoomData && currentRoomData.status === '遊戲中') {
-            await getRandomQuestion();
-          }
-        }, 2000);
-      }
+        console.log('Showing answer state set');
+        
+        // 檢查是否獲勝
+        if (newScore >= 20) {
+          console.log("玩家達到20分，立即設置遊戲結束狀態");
+          // 立即設置遊戲結束狀態，確保及時更新
+          await update(ref(database, `rooms/${roomId}`), { 
+            status: '遊戲結束',
+            winner: playerName,
+            lastActivity: serverTimestamp()
+          });
+          console.log("遊戲結束狀態已設置");
+        } else {
+          // 延遲2秒後獲取新題目
+          setTimeout(async () => {
+            // 再次檢查房間狀態，確保遊戲仍在進行中
+            const currentRoomRef = ref(database, `rooms/${roomId}`);
+            const currentRoomSnapshot = await get(currentRoomRef);
+            const currentRoomData = currentRoomSnapshot.val();
+            
+            if (currentRoomData && currentRoomData.status === '遊戲中') {
+              console.log('Getting next question');
+              await getRandomQuestion();
+            }
+          }, 2000);
+        }
+      };
+      
+      // 執行更新分數和檢查勝利
+      updateScoreAndCheckWin();
     } else {
       // 答錯，重置搶答者
+      console.log('Wrong answer, resetting current player');
       update(ref(database, `rooms/${roomId}`), { 
         currentPlayer: null,
         lastActivity: serverTimestamp()
@@ -231,6 +275,8 @@ export const useGame = (roomId, playerName) => {
   // 重新開始遊戲
   const restartGame = async () => {
     if (!roomId) return;
+    
+    console.log('Restarting game');
     
     update(ref(database, `rooms/${roomId}`), {
       status: '遊戲中',
@@ -255,6 +301,8 @@ export const useGame = (roomId, playerName) => {
   // 結束遊戲
   const endGame = () => {
     if (!roomId) return;
+    
+    console.log('Ending game');
     
     update(ref(database, `rooms/${roomId}`), {
       status: '等待中',
