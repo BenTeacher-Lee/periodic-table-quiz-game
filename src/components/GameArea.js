@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 修復結算畫面問題
+// src/components/GameArea.js - 移動端優化版
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -7,8 +7,10 @@ import AnswerOptions from './game/AnswerOptions';
 import ScoreBoard from './game/ScoreBoard';
 import Timer from './ui/Timer';
 import Card from './ui/Card';
+import Button from './ui/Button';
 import '../styles/components.css';
 import '../styles/animations.css';
+import '../styles/mobile.css';
 
 const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const {
@@ -27,7 +29,25 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
-  const [timer, setTimer] = useState(15); // 假設初始化計時器
+  const [timer, setTimer] = useState(15);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 檢測移動設備
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // 初始檢查
+    checkMobile();
+    
+    // 監聽視窗大小變化
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
 
   // 監聽遊戲狀態變化
   useEffect(() => {
@@ -87,26 +107,36 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
         onEnd={() => {
           endGame();
           if (onGameEnd) onGameEnd();
-        }} 
+        }}
+        isMobile={isMobile}
       />
     );
   }
 
+  // 當前玩家是否可以搶答
+  const currentUserCanAnswer = !currentPlayer && !showingAnswer;
+
+  // 移動端搶答按鈕 - 只在移動端且當前用戶可以搶答時顯示
+  const MobileBuzzButton = () => {
+    if (!isMobile || !currentUserCanAnswer || currentPlayer === playerName) return null;
+    
+    return (
+      <Button 
+        onClick={quickAnswer}
+        disabled={!currentUserCanAnswer}
+        variant="secondary"
+        size="lg"
+        className="buzz-button-mobile"
+      >
+        搶答!
+      </Button>
+    );
+  };
+
   // 遊戲進行中
   return (
     <div className="game-container">
-      {/* 左側計分榜 */}
-      <div className="game-sidebar">
-        <ScoreBoard 
-          players={players}
-          currentPlayer={currentPlayer}
-          onQuickAnswer={quickAnswer}
-          showingAnswer={showingAnswer}
-          playerName={playerName}
-        />
-      </div>
-
-      {/* 右側主遊戲區 */}
+      {/* 主遊戲區 */}
       <div className="game-content">
         <Card>
           <div className="game-header">
@@ -141,7 +171,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
               padding: 'var(--space-md) var(--space-lg)',
               borderRadius: 'var(--radius-md)',
               fontWeight: 'bold',
-              fontSize: 'var(--text-xl)',
+              fontSize: isMobile ? 'var(--text-lg)' : 'var(--text-xl)',
               zIndex: 100,
               boxShadow: 'var(--shadow-md)'
             }}>
@@ -150,7 +180,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           )}
           
           <div style={{ 
-            marginBottom: 'var(--space-xl)',
+            marginBottom: 'var(--space-lg)',
             padding: 'var(--space-md)',
             borderRadius: 'var(--radius-md)',
             transition: 'background-color var(--transition-normal) ease'
@@ -162,7 +192,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
             />
             
             {/* 選項顯示 */}
-            <div style={{ marginTop: 'var(--space-lg)' }}>
+            <div style={{ marginTop: 'var(--space-md)' }}>
               <AnswerOptions 
                 options={currentQuestion.options}
                 onSelect={handleCheckAnswer}
@@ -179,8 +209,8 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                 padding: 'var(--space-md)', 
                 backgroundColor: 'var(--warning-light)', 
                 borderRadius: 'var(--radius-md)', 
-                fontSize: 'var(--text-lg)',
-                marginTop: 'var(--space-lg)'
+                fontSize: isMobile ? 'var(--text-base)' : 'var(--text-lg)',
+                marginTop: 'var(--space-md)'
               }}>
                 目前搶答者：
                 <span style={{ 
@@ -201,7 +231,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
                 padding: 'var(--space-md)', 
                 backgroundColor: 'rgba(16, 185, 129, 0.2)', 
                 borderRadius: 'var(--radius-md)', 
-                fontSize: 'var(--text-lg)',
+                fontSize: isMobile ? 'var(--text-base)' : 'var(--text-lg)',
                 color: 'var(--success-dark)',
                 fontWeight: 'bold'
               }}>
@@ -211,6 +241,21 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
           </div>
         </Card>
       </div>
+
+      {/* 計分榜 */}
+      <div className="game-sidebar">
+        <ScoreBoard 
+          players={players}
+          currentPlayer={currentPlayer}
+          onQuickAnswer={quickAnswer}
+          showingAnswer={showingAnswer}
+          playerName={playerName}
+          isMobile={isMobile}
+        />
+      </div>
+
+      {/* 移動端獨有的浮動搶答按鈕 */}
+      <MobileBuzzButton />
     </div>
   );
 };
