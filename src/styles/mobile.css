@@ -1,10 +1,11 @@
-/* src/styles/mobile.css */
+/* src/styles/mobile.css - 修復按鈕遮擋問題 */
 @import './variables.css';
 
 /* 基本移動端調整 */
 @media (max-width: 768px) {
   body {
     font-size: 16px;
+    padding-bottom: 70px; /* 為底部按鈕預留空間 */
   }
   
   .container {
@@ -13,7 +14,14 @@
   
   /* App 標題調整 */
   .app-title {
-    font-size: var(--text-2xl);
+    font-size: var(--text-xl);
+    padding: 0 var(--space-md);
+    margin: var(--space-sm) 0;
+    line-height: 1.4;
+  }
+  
+  .app-header {
+    padding: var(--space-sm) 0;
   }
   
   /* 遊戲容器調整 */
@@ -21,11 +29,13 @@
     flex-direction: column;
     padding: var(--space-sm);
     gap: var(--space-md);
+    margin-bottom: 70px; /* 為底部按鈕預留空間 */
   }
   
   .game-sidebar {
     width: 100%;
     order: 2; /* 移到底部 */
+    margin-bottom: 70px; /* 確保底部有足夠空間 */
   }
   
   .game-content {
@@ -47,6 +57,7 @@
     height: 60px;
     z-index: 100;
     font-size: var(--text-xl);
+    box-shadow: var(--shadow-lg);
   }
   
   /* 選項按鈕優化 */
@@ -98,11 +109,54 @@
   }
   
   .admin-content {
-    padding-bottom: 70px; /* 為底部固定按鈕留出空間 */
+    padding-bottom: 80px; /* 為底部固定按鈕留出更多空間 */
+  }
+  
+  /* 修復主頁按鈕排版 */
+  .top-buttons {
+    display: flex;
+    flex-direction: column;
+    margin-top: 60px; /* 調整頂部邊距 */
+    padding: 0 var(--space-md);
+  }
+  
+  .top-buttons button {
+    margin-bottom: var(--space-md);
+  }
+  
+  /* 頁面主體下移，避免被頂部標題覆蓋 */
+  .room-container {
+    margin-top: 80px;
+    padding: 0 var(--space-sm);
+  }
+  
+  /* 主頁問候文字調整 */
+  .room-welcome {
+    text-align: center;
+    margin-bottom: var(--space-lg);
+  }
+  
+  .room-welcome h2 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-xs);
+  }
+  
+  /* 創建房間區域調整 */
+  .room-creator {
+    margin-bottom: var(--space-xl);
+  }
+  
+  .room-creator h3 {
+    text-align: center;
+    margin-bottom: var(--space-md);
+  }
+  
+  .input-group {
+    max-width: 100% !important;
   }
 }
 
-/* 手機縱向 */
+/* 手機縱向特定優化 */
 @media (max-width: 480px) {
   .game-header {
     flex-direction: column;
@@ -111,7 +165,7 @@
   }
   
   .game-title {
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     margin-bottom: 0;
   }
   
@@ -143,6 +197,29 @@
   .button-group button {
     width: 100%;
   }
+  
+  /* 主頁按鈕調整 - 橫向排列 */
+  .action-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: var(--space-sm);
+    background-color: white;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .action-buttons button {
+    flex: 1;
+    margin: 0 var(--space-xs);
+    padding: var(--space-xs) !important;
+    font-size: var(--text-sm) !important;
+    height: 50px;
+  }
 }
 
 /* 橫屏手機與小型平板 */
@@ -155,6 +232,12 @@
   .victory-player {
     width: 45%;
     margin-bottom: var(--space-md);
+  }
+  
+  /* 調整橫屏模式下的底部間距 */
+  .game-container,
+  .room-container {
+    margin-bottom: 80px;
   }
 }
 

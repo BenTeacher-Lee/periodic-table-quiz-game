@@ -1,4 +1,4 @@
-// src/components/RoomManager.js 優化版 - 增加測試按鈕
+// src/components/RoomManager.js - 修復按鈕遮擋問題
 import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
@@ -6,8 +6,9 @@ import Button from './ui/Button';
 import Card, { CardHeader, CardBody, CardFooter } from './ui/Card';
 import Badge from './ui/Badge';
 import '../styles/components.css';
+import '../styles/mobile.css';
 
-const RoomManager = ({ onManageQuestions, onTestVictory }) => {
+const RoomManager = ({ onManageQuestions, onTestVictory, isMobile }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
@@ -57,7 +58,7 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
     setRoomName('');
   };
 
-  // 遊戲結束回調
+  // 遊戲結束回调
   const handleGameEnd = () => {};
 
   // 加入房間
@@ -90,7 +91,7 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
 
   // 顯示遊戲區域
   if (isNameSet && currentRoom && currentRoom.status === '遊戲中') {
-    return <GameArea roomId={currentRoom.id} playerName={playerName} onGameEnd={handleGameEnd} />;
+    return <GameArea roomId={currentRoom.id} playerName={playerName} onGameEnd={handleGameEnd} isMobile={isMobile} />;
   }
 
   // 如果尚未設置名稱
@@ -132,33 +133,61 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
   if (currentRoom) {
     return (
       <div className="room-container">
-        <div style={{ position: 'absolute', top: '6rem', right: '2rem' }}>
-          <Button 
-            onClick={onManageQuestions}
-            variant="primary"
-            style={{ marginRight: 'var(--space-md)' }}
-          >
-            題目管理
-          </Button>
-          <Button 
-            onClick={onTestVictory}
-            variant="primary"
-            style={{ marginRight: 'var(--space-md)' }}
-          >
-            測試勝利畫面
-          </Button>
-          <Button 
-            onClick={handleLogout}
-            variant="danger"
-          >
-            登出
-          </Button>
-        </div>
+        {/* 移動端按鈕調整 - 改為底部固定樣式 */}
+        {isMobile ? (
+          <div className="action-buttons">
+            <Button 
+              onClick={onManageQuestions}
+              variant="primary"
+              size="sm"
+            >
+              題目管理
+            </Button>
+            <Button 
+              onClick={onTestVictory}
+              variant="primary"
+              size="sm"
+            >
+              測試勝利
+            </Button>
+            <Button 
+              onClick={handleLogout}
+              variant="danger"
+              size="sm"
+            >
+              登出
+            </Button>
+          </div>
+        ) : (
+          // 桌面版頂部按鈕佈局
+          <div style={{ position: 'absolute', top: '6rem', right: '2rem' }}>
+            <Button 
+              onClick={onManageQuestions}
+              variant="primary"
+              style={{ marginRight: 'var(--space-md)' }}
+            >
+              題目管理
+            </Button>
+            <Button 
+              onClick={onTestVictory}
+              variant="primary"
+              style={{ marginRight: 'var(--space-md)' }}
+            >
+              測試勝利畫面
+            </Button>
+            <Button 
+              onClick={handleLogout}
+              variant="danger"
+            >
+              登出
+            </Button>
+          </div>
+        )}
         
-        <Card style={{ marginTop: 'var(--space-lg)' }}>
+        <Card style={{ marginTop: isMobile ? '1rem' : 'var(--space-lg)' }}>
           <CardHeader>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 'bold' }}>
+              <h2 style={{ fontSize: isMobile ? 'var(--text-lg)' : 'var(--text-2xl)', fontWeight: 'bold' }}>
                 房間：{currentRoom.name}
               </h2>
             </div>
@@ -166,9 +195,9 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
           
           <CardBody>
             <h3 style={{ 
-              fontSize: 'var(--text-xl)', 
+              fontSize: isMobile ? 'var(--text-base)' : 'var(--text-xl)', 
               fontWeight: 'bold', 
-              marginBottom: 'var(--space-md)' 
+              marginBottom: isMobile ? 'var(--space-sm)' : 'var(--space-md)'
             }}>
               玩家列表
             </h3>
@@ -178,7 +207,9 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
                   key={index} 
                   className="scoreboard-item"
                 >
-                  <span style={{ fontSize: 'var(--text-lg)' }}>
+                  <span style={{ 
+                    fontSize: isMobile ? 'var(--text-base)' : 'var(--text-lg)'
+                  }}>
                     {player.name} 
                     {player.name === currentRoom.host && (
                       <Badge 
@@ -190,7 +221,7 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
                     )}
                   </span>
                   <span style={{ 
-                    fontSize: 'var(--text-lg)', 
+                    fontSize: isMobile ? 'var(--text-base)' : 'var(--text-lg)', 
                     fontWeight: 'bold' 
                   }}>
                     分數：{player.score}
@@ -226,29 +257,56 @@ const RoomManager = ({ onManageQuestions, onTestVictory }) => {
   // 房間列表
   return (
     <div className="room-container">
-      {/* 頂部按鈕 */}
-      <div style={{ position: 'absolute', top: '6rem', right: '2rem' }}>
-        <Button 
-          onClick={onManageQuestions}
-          variant="primary"
-          style={{ marginRight: 'var(--space-md)' }}
-        >
-          題目管理
-        </Button>
-        <Button 
-          onClick={onTestVictory}
-          variant="primary"
-          style={{ marginRight: 'var(--space-md)' }}
-        >
-          測試勝利畫面
-        </Button>
-        <Button 
-          onClick={handleLogout}
-          variant="danger"
-        >
-          登出
-        </Button>
-      </div>
+      {/* 移動端按鈕調整 - 改為底部固定樣式 */}
+      {isMobile ? (
+        <div className="action-buttons">
+          <Button 
+            onClick={onManageQuestions}
+            variant="primary"
+            size="sm"
+          >
+            題目管理
+          </Button>
+          <Button 
+            onClick={onTestVictory}
+            variant="primary"
+            size="sm"
+          >
+            測試勝利
+          </Button>
+          <Button 
+            onClick={handleLogout}
+            variant="danger"
+            size="sm"
+          >
+            登出
+          </Button>
+        </div>
+      ) : (
+        // 桌面版頂部按鈕佈局
+        <div style={{ position: 'absolute', top: '6rem', right: '2rem' }}>
+          <Button 
+            onClick={onManageQuestions}
+            variant="primary"
+            style={{ marginRight: 'var(--space-md)' }}
+          >
+            題目管理
+          </Button>
+          <Button 
+            onClick={onTestVictory}
+            variant="primary"
+            style={{ marginRight: 'var(--space-md)' }}
+          >
+            測試勝利畫面
+          </Button>
+          <Button 
+            onClick={handleLogout}
+            variant="danger"
+          >
+            登出
+          </Button>
+        </div>
+      )}
       
       {/* 歡迎信息區域 */}
       <div className="room-welcome">
