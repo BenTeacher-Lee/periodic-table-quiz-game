@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 緊急修復版
+// src/hooks/useGame.js - 添加計時器和搶答冷卻
 import { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, get, set, off, remove, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -11,11 +11,14 @@ export const useGame = (roomId, playerName) => {
   const [players, setPlayers] = useState([]);
   const [usedQuestions, setUsedQuestions] = useState([]);
   const [showingAnswer, setShowingAnswer] = useState(false);
+  const [answerTime, setAnswerTime] = useState(15); // 答題倒計時 15 秒
+  const [disabledPlayers, setDisabledPlayers] = useState([]); // 被禁用的玩家列表
   
   // 使用 ref 來追蹤關鍵數據，避免閉包問題
   const roomIdRef = useRef(roomId);
   const playerNameRef = useRef(playerName);
   const gameStatusRef = useRef('waiting');
+  const timerRef = useRef(null);
   
   // 同步 ref 值
   useEffect(() => {
@@ -23,6 +26,77 @@ export const useGame = (roomId, playerName) => {
     playerNameRef.current = playerName;
     gameStatusRef.current = gameStatus;
   }, [roomId, playerName, gameStatus]);
+
+  // 清理計時器
+  const clearGameTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  // 啟動答題計時器
+  const startAnswerTimer = (initialTime = 15) => {
+    // 先清除可能存在的計時器
+    clearGameTimer();
+    
+    // 設置初始時間
+    setAnswerTime(initialTime);
+    
+    // 啟動新計時器
+    timerRef.current = setInterval(() => {
+      setAnswerTime(prevTime => {
+        // 時間到，自動設為答錯
+        if (prevTime <= 1) {
+          clearGameTimer();
+          // 如果當前搶答者是本玩家，自動提交錯誤答案
+          if (currentPlayer === playerNameRef.current) {
+            handleTimeOut();
+          }
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+  };
+
+  // 處理計時器超時
+  const handleTimeOut = async () => {
+    const currentRoomId = roomIdRef.current;
+    const currentPlayerName = playerNameRef.current;
+    
+    if (!currentRoomId) return;
+    
+    console.log('計時器超時，自動設為答錯');
+    
+    try {
+      // 獲取最新房間數據
+      const roomRef = ref(database, `rooms/${currentRoomId}`);
+      const snapshot = await get(roomRef);
+      const roomData = snapshot.val();
+      
+      if (!roomData) return;
+      
+      // 將當前玩家添加到禁用列表
+      const newDisabledPlayers = roomData.disabledPlayers || [];
+      if (!newDisabledPlayers.includes(currentPlayerName)) {
+        newDisabledPlayers.push(currentPlayerName);
+      }
+      
+      // 更新房間狀態
+      await set(roomRef, {
+        ...roomData,
+        currentPlayer: null,
+        disabledPlayers: newDisabledPlayers,
+        lastActivity: serverTimestamp()
+      });
+      
+      // 更新本地禁用狀態
+      setDisabledPlayers(newDisabledPlayers);
+    } catch (error) {
+      console.error('處理計時器超時錯誤:', error);
+    }
+  };
 
   // 監聽遊戲狀態
   useEffect(() => {
@@ -67,6 +141,9 @@ export const useGame = (roomId, playerName) => {
           });
           
           console.log('已強制設置遊戲結束狀態');
+          
+          // 清除計時器
+          clearGameTimer();
         }
       } catch (error) {
         console.error('勝利條件檢查錯誤:', error);
@@ -91,12 +168,36 @@ export const useGame = (roomId, playerName) => {
       
       // 更新本地狀態
       setCurrentQuestion(data.currentQuestion || null);
-      setCurrentPlayer(data.currentPlayer || null);
+      
+      // 檢測到有人搶答，啟動計時器
+      const prevCurrentPlayer = currentPlayer;
+      const newCurrentPlayer = data.currentPlayer;
+      setCurrentPlayer(newCurrentPlayer);
+      
+      // 如果有新的搶答者，啟動計時器
+      if (newCurrentPlayer && newCurrentPlayer !== prevCurrentPlayer) {
+        console.log(`${newCurrentPlayer} 搶答，啟動計時器`);
+        startAnswerTimer(15);
+      }
+      
+      // 如果沒有搶答者且不是在顯示答案，停止計時器
+      if (!newCurrentPlayer && !data.showingAnswer) {
+        clearGameTimer();
+        setAnswerTime(15); // 重置計時器
+      }
+      
       setGameStatus(data.status || 'waiting');
       gameStatusRef.current = data.status || 'waiting';
       setWinner(data.winner || null);
       setShowingAnswer(data.showingAnswer || false);
       setUsedQuestions(data.usedQuestions || []);
+      
+      // 更新禁用玩家列表
+      if (data.disabledPlayers) {
+        setDisabledPlayers(data.disabledPlayers);
+      } else {
+        setDisabledPlayers([]);
+      }
       
       // 格式化玩家數據
       if (data.players) {
@@ -125,6 +226,9 @@ export const useGame = (roomId, playerName) => {
           }).catch(error => {
             console.error('更新遊戲結束狀態錯誤:', error);
           });
+          
+          // 清除計時器
+          clearGameTimer();
         }
       }
     };
@@ -136,15 +240,22 @@ export const useGame = (roomId, playerName) => {
     return () => {
       console.log('清理房間監聽');
       clearInterval(victoryCheckInterval);
+      clearGameTimer();
       // 確保徹底移除監聽
       off(roomRef);
     };
-  }, [roomId]);
+  }, [roomId, currentPlayer]);
 
-  // 搶答 - 增強版
+  // 搶答 - 帶冷卻機制
   const quickAnswer = () => {
     if (!roomIdRef.current || !playerNameRef.current) return;
     console.log('嘗試搶答:', playerNameRef.current);
+    
+    // 檢查是否在禁用列表中
+    if (disabledPlayers.includes(playerNameRef.current)) {
+      console.log('該玩家已被禁用搶答');
+      return;
+    }
     
     // 強制清除任何可能的障礙
     const roomRef = ref(database, `rooms/${roomIdRef.current}`);
@@ -168,7 +279,7 @@ export const useGame = (roomId, playerName) => {
     });
   };
 
-  // 檢查答案 - 極度優化版
+  // 檢查答案 - 帶冷卻機制
   const checkAnswer = async (selectedOption) => {
     const currentRoomId = roomIdRef.current;
     const currentPlayerName = playerNameRef.current;
@@ -197,6 +308,9 @@ export const useGame = (roomId, playerName) => {
       
       console.log('檢查答案:', selectedOption, roomData.currentQuestion.correctAnswer);
       
+      // 停止計時器
+      clearGameTimer();
+      
       // 答對情況
       if (selectedOption === roomData.currentQuestion.correctAnswer) {
         // 獲取玩家當前分數
@@ -206,6 +320,8 @@ export const useGame = (roomId, playerName) => {
         const newScore = currentScore + 1;
         
         console.log('答對了! 舊分數:', currentScore, '新分數:', newScore);
+        
+        // 清除所有禁用的玩家
         
         // 1. 先設置顯示答案狀態，同時更新分數
         await set(roomRef, {
@@ -218,8 +334,12 @@ export const useGame = (roomId, playerName) => {
               score: newScore
             }
           },
+          disabledPlayers: [], // 重置禁用列表
           lastActivity: serverTimestamp()
         });
+        
+        // 更新本地禁用狀態
+        setDisabledPlayers([]);
         
         // 2. 檢查是否達到勝利條件
         if (newScore >= 20) {
@@ -242,6 +362,7 @@ export const useGame = (roomId, playerName) => {
             },
             status: '遊戲結束',
             winner: currentPlayerName,
+            disabledPlayers: [], // 重置禁用列表
             lastActivity: serverTimestamp()
           });
           
@@ -261,12 +382,24 @@ export const useGame = (roomId, playerName) => {
         }
       } else {
         // 答錯情況
-        console.log('答錯了，重置當前玩家');
+        console.log('答錯了，添加到禁用列表');
+        
+        // 將當前玩家添加到禁用列表
+        const newDisabledPlayers = roomData.disabledPlayers || [];
+        if (!newDisabledPlayers.includes(currentPlayerName)) {
+          newDisabledPlayers.push(currentPlayerName);
+        }
+        
+        // 更新房間狀態
         await set(roomRef, {
           ...roomData,
           currentPlayer: null,
+          disabledPlayers: newDisabledPlayers,
           lastActivity: serverTimestamp()
         });
+        
+        // 更新本地禁用狀態
+        setDisabledPlayers(newDisabledPlayers);
       }
     } catch (error) {
       console.error('檢查答案時出錯:', error);
@@ -307,8 +440,13 @@ export const useGame = (roomId, playerName) => {
           currentQuestion: defaultQuestion,
           currentPlayer: null,
           showingAnswer: false,
+          disabledPlayers: [], // 重置禁用列表
           lastActivity: serverTimestamp()
         });
+        
+        // 重置計時器和禁用玩家列表
+        setAnswerTime(15);
+        setDisabledPlayers([]);
         
         return;
       }
@@ -346,8 +484,13 @@ export const useGame = (roomId, playerName) => {
           usedQuestions: [randomQuestion.id],
           currentPlayer: null,
           showingAnswer: false,
+          disabledPlayers: [], // 重置禁用列表
           lastActivity: serverTimestamp()
         });
+        
+        // 重置計時器和禁用玩家列表
+        setAnswerTime(15);
+        setDisabledPlayers([]);
       } else {
         // 從未使用過的題目中隨機選擇
         const randomIndex = Math.floor(Math.random() * unusedQuestions.length);
@@ -364,8 +507,13 @@ export const useGame = (roomId, playerName) => {
           usedQuestions: [...usedQuestionIds, randomQuestion.id],
           currentPlayer: null,
           showingAnswer: false,
+          disabledPlayers: [], // 重置禁用列表
           lastActivity: serverTimestamp()
         });
+        
+        // 重置計時器和禁用玩家列表
+        setAnswerTime(15);
+        setDisabledPlayers([]);
       }
     } catch (error) {
       console.error('獲取隨機題目出錯:', error);
@@ -388,8 +536,13 @@ export const useGame = (roomId, playerName) => {
             currentQuestion: defaultQuestion,
             currentPlayer: null,
             showingAnswer: false,
+            disabledPlayers: [], // 重置禁用列表
             lastActivity: serverTimestamp()
           });
+          
+          // 重置計時器和禁用玩家列表
+          setAnswerTime(15);
+          setDisabledPlayers([]);
         }
       } catch (innerError) {
         console.error('設置默認題目出錯:', innerError);
@@ -431,9 +584,14 @@ export const useGame = (roomId, playerName) => {
         currentPlayer: null,
         usedQuestions: [],
         showingAnswer: false,
+        disabledPlayers: [], // 重置禁用列表
         players: resetPlayers,
         lastActivity: serverTimestamp()
       });
+      
+      // 重置計時器和禁用玩家列表
+      setAnswerTime(15);
+      setDisabledPlayers([]);
       
       // 獲取新題目
       await getRandomQuestion();
@@ -477,9 +635,14 @@ export const useGame = (roomId, playerName) => {
         currentQuestion: null,
         usedQuestions: [],
         showingAnswer: false,
+        disabledPlayers: [], // 重置禁用列表
         players: resetPlayers,
         lastActivity: serverTimestamp()
       });
+      
+      // 重置計時器和禁用玩家列表
+      setAnswerTime(15);
+      setDisabledPlayers([]);
     } catch (error) {
       console.error('結束遊戲出錯:', error);
     }
@@ -496,6 +659,10 @@ export const useGame = (roomId, playerName) => {
       const roomRef = ref(database, `rooms/${currentRoomId}`);
       await remove(roomRef);
       console.log('已刪除房間');
+      
+      // 重置計時器和禁用玩家列表
+      setAnswerTime(15);
+      setDisabledPlayers([]);
     } catch (error) {
       console.error('強制結束遊戲出錯:', error);
     }
@@ -512,7 +679,9 @@ export const useGame = (roomId, playerName) => {
     restartGame,
     endGame,
     showingAnswer,
-    forceEndGame
+    forceEndGame,
+    answerTime,
+    disabledPlayers
   };
 };
 

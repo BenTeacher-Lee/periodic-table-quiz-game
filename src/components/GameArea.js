@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 移動端搶答優化
+// src/components/GameArea.js - 加入搶答計時器
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -24,13 +24,14 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     restartGame,
     endGame,
     showingAnswer,
-    forceEndGame
+    forceEndGame,
+    answerTime,
+    disabledPlayers
   } = useGame(roomId, playerName);
 
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
-  const [timer, setTimer] = useState(15);
   const buzzButtonRef = useRef(null);
 
   // 監控遊戲狀態
@@ -38,8 +39,13 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     console.log("GameArea - 遊戲狀態:", gameStatus, "勝利者:", winner);
   }, [gameStatus, winner]);
 
+  // 檢查當前玩家是否可以搶答
+  const canPlayerBuzz = !currentPlayer && !showingAnswer && !disabledPlayers.includes(playerName);
+
   // 處理搶答按鈕點擊 - 增強版
   const handleBuzzClick = () => {
+    if (!canPlayerBuzz) return;
+    
     console.log("點擊搶答按鈕");
     // 立即顯示視覺反饋
     if (buzzButtonRef.current) {
@@ -115,40 +121,46 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     );
   }
 
-  // 當前玩家是否可以搶答
-  const currentUserCanAnswer = !currentPlayer && !showingAnswer;
+  // 當前玩家是否被禁用
+  const isPlayerDisabled = disabledPlayers.includes(playerName);
 
   // 移動端搶答按鈕 - 增強版
   const MobileBuzzButton = () => {
-    if (!isMobile || !currentUserCanAnswer || currentPlayer === playerName) return null;
+    if (!isMobile || !canPlayerBuzz) return null;
+    
+    // 根據禁用狀態設置不同的樣式
+    const buttonStyle = {
+      position: 'fixed',
+      bottom: 'var(--space-md)',
+      left: 'var(--space-md)',
+      right: 'var(--space-md)',
+      height: '70px',
+      backgroundColor: isPlayerDisabled ? 'var(--text-light)' : 'var(--success)',
+      color: 'white',
+      border: 'none',
+      borderRadius: 'var(--radius-lg)',
+      fontSize: 'var(--text-2xl)',
+      fontWeight: 'bold',
+      zIndex: 1000,
+      boxShadow: 'var(--shadow-lg)',
+      transition: 'transform 0.1s ease',
+      WebkitTapHighlightColor: 'transparent', // 移除iOS點擊高亮
+      outline: 'none', // 移除點擊輪廓
+      WebkitAppearance: 'none', // 移除默認按鈕樣式
+      touchAction: 'manipulation', // 優化觸控
+      opacity: isPlayerDisabled ? 0.6 : 1,
+      cursor: isPlayerDisabled ? 'not-allowed' : 'pointer'
+    };
     
     return (
       <button 
         ref={buzzButtonRef}
         onClick={handleBuzzClick}
         className="buzz-button-mobile"
-        style={{
-          position: 'fixed',
-          bottom: 'var(--space-md)',
-          left: 'var(--space-md)',
-          right: 'var(--space-md)',
-          height: '70px',
-          backgroundColor: 'var(--success)',
-          color: 'white',
-          border: 'none',
-          borderRadius: 'var(--radius-lg)',
-          fontSize: 'var(--text-2xl)',
-          fontWeight: 'bold',
-          zIndex: 1000,
-          boxShadow: 'var(--shadow-lg)',
-          transition: 'transform 0.1s ease',
-          WebkitTapHighlightColor: 'transparent', // 移除iOS點擊高亮
-          outline: 'none', // 移除點擊輪廓
-          WebkitAppearance: 'none', // 移除默認按鈕樣式
-          touchAction: 'manipulation', // 優化觸控
-        }}
+        style={buttonStyle}
+        disabled={isPlayerDisabled}
       >
-        搶答!
+        {isPlayerDisabled ? '已禁用搶答' : '搶答!'}
       </button>
     );
   };
@@ -161,7 +173,21 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
         <Card>
           <div className="game-header">
             <h2 className="game-title">元素週期表搶答遊戲</h2>
-            <Timer seconds={timer} variant="auto" />
+            
+            {/* 根據遊戲狀態顯示不同的計時器 */}
+            {currentPlayer ? (
+              // 有人搶答時顯示答題倒計時
+              <Timer 
+                seconds={answerTime} 
+                variant={answerTime <= 5 ? 'warning' : 'normal'} 
+              />
+            ) : (
+              // 沒人搶答時顯示靜態計時器
+              <Timer 
+                seconds={15} 
+                variant="normal" 
+              />
+            )}
           </div>
           
           {/* 分數動畫 */}
@@ -225,7 +251,7 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
             {/* 當前搶答者顯示 */}
             {currentPlayer && (
               <div style={{ 
-                textAlign: 'right', 
+                textAlign: 'center', 
                 padding: 'var(--space-md)', 
                 backgroundColor: 'var(--warning-light)', 
                 borderRadius: 'var(--radius-md)', 
@@ -240,6 +266,53 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
                 }}>
                   {currentPlayer}
                 </span>
+                <span style={{ 
+                  display: 'block',
+                  marginTop: 'var(--space-xs)',
+                  fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)',
+                  color: 'var(--text-secondary)'
+                }}>
+                  剩餘時間: {answerTime} 秒
+                </span>
+              </div>
+            )}
+            
+            {/* 禁用玩家列表顯示 */}
+            {disabledPlayers.length > 0 && (
+              <div style={{ 
+                marginTop: 'var(--space-md)',
+                padding: 'var(--space-md)', 
+                backgroundColor: 'var(--background-light)', 
+                borderRadius: 'var(--radius-md)', 
+                fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-base)',
+              }}>
+                <p style={{ 
+                  fontWeight: 'bold',
+                  color: 'var(--text-secondary)',
+                  marginBottom: 'var(--space-xs)'
+                }}>
+                  已禁用搶答的玩家:
+                </p>
+                <div style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 'var(--space-xs)'
+                }}>
+                  {disabledPlayers.map((player, index) => (
+                    <span 
+                      key={player} 
+                      style={{
+                        padding: '2px 8px',
+                        backgroundColor: player === playerName ? 'var(--danger-light)' : 'var(--background)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: isMobile ? 'var(--text-xs)' : 'var(--text-sm)',
+                        color: player === playerName ? 'var(--danger)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      {player}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
             
@@ -271,6 +344,8 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
           showingAnswer={showingAnswer}
           playerName={playerName}
           isMobile={isMobile}
+          disabledPlayers={disabledPlayers}
+          answerTime={answerTime}
         />
       </div>
 
