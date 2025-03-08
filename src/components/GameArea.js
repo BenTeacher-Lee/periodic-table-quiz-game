@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 移動端優化版
+// src/components/GameArea.js - 移動端搶答優化
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -12,7 +12,7 @@ import '../styles/components.css';
 import '../styles/animations.css';
 import '../styles/mobile.css';
 
-const GameArea = ({ roomId, playerName, onGameEnd }) => {
+const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
   const {
     currentQuestion,
     currentPlayer,
@@ -23,36 +23,35 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     checkAnswer,
     restartGame,
     endGame,
-    showingAnswer
+    showingAnswer,
+    forceEndGame
   } = useGame(roomId, playerName);
 
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
   const [timer, setTimer] = useState(15);
-  const [isMobile, setIsMobile] = useState(false);
+  const buzzButtonRef = useRef(null);
 
-  // 檢測移動設備
+  // 監控遊戲狀態
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    // 初始檢查
-    checkMobile();
-    
-    // 監聽視窗大小變化
-    window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, []);
-
-  // 監聽遊戲狀態變化
-  useEffect(() => {
-    console.log("GameArea - 遊戲狀態更新:", { gameStatus, winner });
+    console.log("GameArea - 遊戲狀態:", gameStatus, "勝利者:", winner);
   }, [gameStatus, winner]);
+
+  // 處理搶答按鈕點擊 - 增強版
+  const handleBuzzClick = () => {
+    console.log("點擊搶答按鈕");
+    // 立即顯示視覺反饋
+    if (buzzButtonRef.current) {
+      buzzButtonRef.current.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        if (buzzButtonRef.current) {
+          buzzButtonRef.current.style.transform = 'scale(1)';
+        }
+      }, 100);
+    }
+    quickAnswer();
+  };
 
   // 處理答案檢查
   const handleCheckAnswer = (index) => {
@@ -91,8 +90,11 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
     );
   }
 
-  // 遊戲結束條件處理 - 修復結算畫面邏輯
-  if (gameStatus === '遊戲結束' || winner) {
+  // 檢查勝利條件 - 更加寬鬆的判斷
+  const isGameOver = gameStatus === '遊戲結束' || !!winner;
+  console.log("勝利檢查:", {isGameOver, gameStatus, winner});
+
+  if (isGameOver) {
     console.log("顯示勝利畫面:", { gameStatus, winner, players });
     
     // 確保有勝利者，如果 winner 為空，則使用分數最高的玩家
@@ -116,20 +118,38 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
   // 當前玩家是否可以搶答
   const currentUserCanAnswer = !currentPlayer && !showingAnswer;
 
-  // 移動端搶答按鈕 - 只在移動端且當前用戶可以搶答時顯示
+  // 移動端搶答按鈕 - 增強版
   const MobileBuzzButton = () => {
     if (!isMobile || !currentUserCanAnswer || currentPlayer === playerName) return null;
     
     return (
-      <Button 
-        onClick={quickAnswer}
-        disabled={!currentUserCanAnswer}
-        variant="secondary"
-        size="lg"
+      <button 
+        ref={buzzButtonRef}
+        onClick={handleBuzzClick}
         className="buzz-button-mobile"
+        style={{
+          position: 'fixed',
+          bottom: 'var(--space-md)',
+          left: 'var(--space-md)',
+          right: 'var(--space-md)',
+          height: '70px',
+          backgroundColor: 'var(--success)',
+          color: 'white',
+          border: 'none',
+          borderRadius: 'var(--radius-lg)',
+          fontSize: 'var(--text-2xl)',
+          fontWeight: 'bold',
+          zIndex: 1000,
+          boxShadow: 'var(--shadow-lg)',
+          transition: 'transform 0.1s ease',
+          WebkitTapHighlightColor: 'transparent', // 移除iOS點擊高亮
+          outline: 'none', // 移除點擊輪廓
+          WebkitAppearance: 'none', // 移除默認按鈕樣式
+          touchAction: 'manipulation', // 優化觸控
+        }}
       >
         搶答!
-      </Button>
+      </button>
     );
   };
 
@@ -247,7 +267,7 @@ const GameArea = ({ roomId, playerName, onGameEnd }) => {
         <ScoreBoard 
           players={players}
           currentPlayer={currentPlayer}
-          onQuickAnswer={quickAnswer}
+          onQuickAnswer={handleBuzzClick}
           showingAnswer={showingAnswer}
           playerName={playerName}
           isMobile={isMobile}

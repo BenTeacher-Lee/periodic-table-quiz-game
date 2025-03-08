@@ -1,11 +1,11 @@
-/* src/styles/mobile.css - 修復按鈕遮擋問題 */
+/* src/styles/mobile.css - 改進搶答按鈕敏感度 */
 @import './variables.css';
 
 /* 基本移動端調整 */
 @media (max-width: 768px) {
   body {
     font-size: 16px;
-    padding-bottom: 70px; /* 為底部按鈕預留空間 */
+    padding-bottom: 80px; /* 為底部按鈕預留更多空間 */
   }
   
   .container {
@@ -29,13 +29,13 @@
     flex-direction: column;
     padding: var(--space-sm);
     gap: var(--space-md);
-    margin-bottom: 70px; /* 為底部按鈕預留空間 */
+    margin-bottom: 90px; /* 為底部按鈕預留更多空間 */
   }
   
   .game-sidebar {
     width: 100%;
     order: 2; /* 移到底部 */
-    margin-bottom: 70px; /* 確保底部有足夠空間 */
+    margin-bottom: 80px; /* 確保底部有足夠空間 */
   }
   
   .game-content {
@@ -48,16 +48,33 @@
     margin-bottom: var(--space-xs);
   }
   
-  /* 搶答按鈕增強 */
+  /* 搶答按鈕增強 - 使用原生按鈕樣式以提高敏感度 */
   .buzz-button-mobile {
     position: fixed;
     bottom: var(--space-md);
     left: var(--space-md);
     right: var(--space-md);
-    height: 60px;
-    z-index: 100;
-    font-size: var(--text-xl);
+    height: 70px;
+    z-index: 1000;
+    font-size: var(--text-2xl);
     box-shadow: var(--shadow-lg);
+    background-color: var(--success);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-weight: bold;
+    transform: translateZ(0); /* 硬件加速 */
+    -webkit-appearance: none; /* 移除默認按鈕樣式 */
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent; /* 移除iOS點擊高亮 */
+    touch-action: manipulation; /* 改進觸控行為 */
+    will-change: transform; /* 硬件加速提示 */
+    transition: transform 0.1s ease, background-color 0.2s ease;
+  }
+  
+  .buzz-button-mobile:active {
+    transform: scale(0.98) translateZ(0);
+    background-color: var(--success-dark);
   }
   
   /* 選項按鈕優化 */
@@ -65,6 +82,13 @@
     padding: var(--space-md);
     margin-bottom: var(--space-sm);
     min-height: 56px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    will-change: transform;
+  }
+  
+  .option-button:active {
+    transform: scale(0.98);
   }
   
   /* 房間列表優化 */
@@ -109,14 +133,14 @@
   }
   
   .admin-content {
-    padding-bottom: 80px; /* 為底部固定按鈕留出更多空間 */
+    padding-bottom: 90px; /* 為底部固定按鈕留出更多空間 */
   }
   
   /* 修復主頁按鈕排版 */
   .top-buttons {
     display: flex;
     flex-direction: column;
-    margin-top: 60px; /* 調整頂部邊距 */
+    margin-top: 70px; /* 調整頂部邊距 */
     padding: 0 var(--space-md);
   }
   
@@ -126,8 +150,9 @@
   
   /* 頁面主體下移，避免被頂部標題覆蓋 */
   .room-container {
-    margin-top: 80px;
+    margin-top: 70px;
     padding: 0 var(--space-sm);
+    padding-bottom: 90px; /* 為底部按鈕預留空間 */
   }
   
   /* 主頁問候文字調整 */
@@ -153,6 +178,48 @@
   
   .input-group {
     max-width: 100% !important;
+  }
+  
+  /* 底部固定按鈕欄 */
+  .action-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: var(--space-sm);
+    background-color: white;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+    box-sizing: border-box;
+  }
+  
+  .action-buttons button {
+    flex: 1;
+    margin: 0 var(--space-xs);
+    padding: var(--space-md) var(--space-xs) !important;
+    font-size: var(--text-sm) !important;
+    height: 60px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  /* 為所有按鈕添加更好的觸摸反饋 */
+  button, .btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  
+  button:active, .btn:active {
+    transform: scale(0.98);
+  }
+  
+  /* 輸入框觸摸優化 */
+  input {
+    font-size: var(--text-lg);
   }
 }
 
@@ -198,27 +265,18 @@
     width: 100%;
   }
   
-  /* 主頁按鈕調整 - 橫向排列 */
-  .action-buttons {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    padding: var(--space-sm);
-    background-color: white;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    box-shadow: var(--shadow-lg);
+  /* 使按鈕更大更容易點擊 */
+  .action-buttons button {
+    height: 65px;
+    min-width: 80px;
   }
   
-  .action-buttons button {
-    flex: 1;
-    margin: 0 var(--space-xs);
-    padding: var(--space-xs) !important;
-    font-size: var(--text-sm) !important;
-    height: 50px;
+  /* 搶答按鈕進一步增大 */
+  .buzz-button-mobile {
+    height: 80px;
+    bottom: var(--space-lg);
+    font-size: var(--text-3xl);
+    border-radius: var(--radius-xl);
   }
 }
 
@@ -238,6 +296,15 @@
   .game-container,
   .room-container {
     margin-bottom: 80px;
+  }
+  
+  /* 橫屏模式下的搶答按鈕調整 */
+  .buzz-button-mobile {
+    height: 60px;
+    width: 150px;
+    bottom: var(--space-lg);
+    right: var(--space-lg);
+    left: auto;
   }
 }
 
@@ -268,5 +335,11 @@
   /* 增加間距避免誤觸 */
   .button-group {
     gap: var(--space-md);
+  }
+  
+  /* 確保所有可交互元素都有足夠大的點擊區域 */
+  .btn, button, input[type="submit"], input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
