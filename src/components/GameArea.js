@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 優化勝利判斷邏輯
+// src/components/GameArea.js - 完全優化版
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -13,6 +13,7 @@ import '../styles/animations.css';
 import '../styles/mobile.css';
 
 const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
+  // 使用優化後的hook
   const {
     currentQuestion,
     currentPlayer,
@@ -28,25 +29,43 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     answerTime,
     disabledPlayers
   } = useGame(roomId, playerName);
-
+  
+  // UI狀態
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
   const animationIdRef = useRef(0);
   const buzzButtonRef = useRef(null);
+  const [gameOverTriggered, setGameOverTriggered] = useState(false);
 
-  // 監控遊戲狀態 - 添加更多調試信息
+  // 監控遊戲狀態 - 增強版
   useEffect(() => {
-    console.log("GameArea - 遊戲狀態:", gameStatus, "勝利者:", winner, "玩家列表:", players);
-  }, [gameStatus, winner, players]);
-
+    console.log("GameArea - 狀態變更:", {
+      gameStatus,
+      winner,
+      playersCount: players.length,
+      currentQuestion: !!currentQuestion,
+      hasWinningPlayer: players.some(p => p.score >= 20)
+    });
+    
+    // 特殊處理遊戲結束狀態
+    if ((gameStatus === '遊戲結束' || winner) && !gameOverTriggered) {
+      console.log("檢測到遊戲結束狀態，觸發GameVictory顯示");
+      setGameOverTriggered(true);
+    }
+  }, [gameStatus, winner, players, currentQuestion, gameOverTriggered]);
+  
   // 檢查當前玩家是否可以搶答
   const canPlayerBuzz = !currentPlayer && !showingAnswer && !disabledPlayers.includes(playerName);
-
+  
   // 處理搶答按鈕點擊 - 增強版
   const handleBuzzClick = () => {
-    if (!canPlayerBuzz) return;
+    if (!canPlayerBuzz) {
+      console.log("無法搶答:", { currentPlayer, showingAnswer, isDisabled: disabledPlayers.includes(playerName) });
+      return;
+    }
     
     console.log("點擊搶答按鈕");
+    
     // 立即顯示視覺反饋
     if (buzzButtonRef.current) {
       buzzButtonRef.current.style.transform = 'scale(0.95)';
@@ -56,10 +75,11 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
         }
       }, 100);
     }
+    
     quickAnswer();
   };
 
-  // 處理答案檢查
+  // 處理答案檢查和視覺效果
   const handleCheckAnswer = (index) => {
     if (currentQuestion && index === currentQuestion.correctAnswer) {
       // 正確答案效果
@@ -96,26 +116,41 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     );
   }
 
-  // 檢查勝利條件 - 更寬鬆的判斷，優化勝利檢測邏輯
-  const isGameOver = gameStatus === '遊戲結束' || !!winner || 
+  // 檢查勝利條件 - 更寬鬆更穩健的判斷 
+  const isGameOver = gameOverTriggered || 
+                     gameStatus === '遊戲結束' || 
+                     !!winner || 
                      (players.length > 0 && players.some(player => player.score >= 20));
   
-  console.log("勝利檢查:", {
-    isGameOver, 
-    gameStatus, 
-    winner, 
-    hasPlayerWithHighScore: players.length > 0 && players.some(player => player.score >= 20)
+  console.log("最終勝利判斷:", {
+    isGameOver,
+    gameOverTriggered,
+    gameStatus,
+    winner,
+    hasHighScorePlayer: players.some(player => player.score >= 20)
   });
 
+  // 遊戲結束顯示勝利畫面
   if (isGameOver) {
     console.log("顯示勝利畫面:", { gameStatus, winner, players });
     
-    // 確保有勝利者，如果 winner 為空，則使用分數最高的玩家
-    const winningPlayer = players.find(player => player.score >= 20);
-    const highestScorePlayer = [...players].sort((a, b) => b.score - a.score)[0];
-    const actualWinner = winner || (winningPlayer ? winningPlayer.name : highestScorePlayer?.name || playerName);
+    // 確保有勝利者，如果沒有明確勝利者，使用分數最高的玩家
+    const highScorePlayers = players.filter(p => p.score >= 20);
+    const highestScorePlayer = players.length > 0 ? 
+                              [...players].sort((a, b) => b.score - a.score)[0] : 
+                              null;
     
-    console.log("確定的勝利者:", actualWinner, "勝利閾值檢查:", winningPlayer);
+    // 優先順序: 1.指定的winner 2.達到閾值的玩家 3.分數最高的玩家 4.當前玩家
+    const actualWinner = winner || 
+                         (highScorePlayers.length > 0 ? highScorePlayers[0].name : 
+                          (highestScorePlayer ? highestScorePlayer.name : playerName));
+    
+    console.log("最終勝利者計算:", {
+      specifiedWinner: winner,
+      highScorePlayers: highScorePlayers.map(p => `${p.name}(${p.score})`),
+      highestPlayer: highestScorePlayer ? `${highestScorePlayer.name}(${highestScorePlayer.score})` : null,
+      actualWinner
+    });
     
     return (
       <GameVictory 
@@ -153,7 +188,7 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
       fontWeight: 'bold',
       zIndex: 1000,
       boxShadow: 'var(--shadow-lg)',
-      transition: 'transform 0.1s ease',
+      transition: 'transform 0.1s ease, background-color 0.1s ease',
       WebkitTapHighlightColor: 'transparent', // 移除iOS點擊高亮
       outline: 'none', // 移除點擊輪廓
       WebkitAppearance: 'none', // 移除默認按鈕樣式
@@ -209,6 +244,10 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
                 position: 'absolute',
                 top: '50%',
                 left: `calc(50% + ${anim.x - 100}px)`,
+                fontSize: 'var(--text-xl)',
+                fontWeight: 'bold',
+                color: 'var(--success)',
+                zIndex: 100
               }}
             >
               +1分!
@@ -341,6 +380,34 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
                 正在切換到下一題...
               </div>
             )}
+            
+            {/* 開發工具: 顯示調試信息按鈕 */}
+            <button 
+              onClick={() => console.log({
+                gameStatus,
+                winner,
+                currentPlayer,
+                answerTime,
+                showingAnswer,
+                players: players.map(p => `${p.name}(${p.score})`),
+                disabledPlayers,
+                canPlayerBuzz,
+                isPlayerDisabled,
+                isGameOver,
+                gameOverTriggered
+              })}
+              style={{
+                position: 'fixed',
+                bottom: '5px',
+                left: '5px',
+                fontSize: '10px',
+                opacity: 0.3,
+                padding: '3px',
+                zIndex: 9999
+              }}
+            >
+              Debug
+            </button>
           </div>
         </Card>
       </div>
