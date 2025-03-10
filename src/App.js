@@ -1,8 +1,9 @@
-// src/App.js - 移動端優化版
+// src/App.js - 添加房間重置工具入口
 import React, { useState, useEffect } from 'react';
 import RoomManager from './components/RoomManager';
 import QuestionAdder from './components/QuestionAdder';
 import TestVictory from './components/TestVictory';
+import FirebaseReset from './components/FirebaseReset'; // 新增重置工具
 import './styles/variables.css';
 import './styles/components.css';
 import './styles/animations.css';
@@ -10,7 +11,8 @@ import './styles/mobile.css';
 import './index.css';
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState('roomManager'); // 'roomManager', 'questionAdder', 'testVictory'
+  // 'roomManager', 'questionAdder', 'testVictory', 'firebaseReset'
+  const [currentScreen, setCurrentScreen] = useState('roomManager'); 
   const [isMobile, setIsMobile] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -72,10 +74,12 @@ function App() {
       <main>
         {currentScreen === 'questionAdder' && <QuestionAdder onBack={() => setCurrentScreen('roomManager')} isMobile={isMobile} />}
         {currentScreen === 'testVictory' && <TestVictory onBack={() => setCurrentScreen('roomManager')} isMobile={isMobile} />}
+        {currentScreen === 'firebaseReset' && <FirebaseReset onBack={() => setCurrentScreen('roomManager')} />}
         {currentScreen === 'roomManager' && (
           <RoomManager 
             onManageQuestions={() => setCurrentScreen('questionAdder')}
             onTestVictory={() => setCurrentScreen('testVictory')} 
+            onFirebaseReset={() => setCurrentScreen('firebaseReset')}
             isMobile={isMobile}
           />
         )}

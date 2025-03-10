@@ -1,4 +1,4 @@
-// src/components/RoomManager.js - 修復按鈕遮擋問題
+// src/components/RoomManager.js - 添加重置工具按鈕
 import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import GameArea from './GameArea';
@@ -8,7 +8,7 @@ import Badge from './ui/Badge';
 import '../styles/components.css';
 import '../styles/mobile.css';
 
-const RoomManager = ({ onManageQuestions, onTestVictory, isMobile }) => {
+const RoomManager = ({ onManageQuestions, onTestVictory, onFirebaseReset, isMobile }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [isNameSet, setIsNameSet] = useState(false);
@@ -151,6 +151,13 @@ const RoomManager = ({ onManageQuestions, onTestVictory, isMobile }) => {
               測試勝利
             </Button>
             <Button 
+              onClick={onFirebaseReset}
+              variant="warning"
+              size="sm"
+            >
+              重置工具
+            </Button>
+            <Button 
               onClick={handleLogout}
               variant="danger"
               size="sm"
@@ -174,6 +181,13 @@ const RoomManager = ({ onManageQuestions, onTestVictory, isMobile }) => {
               style={{ marginRight: 'var(--space-md)' }}
             >
               測試勝利畫面
+            </Button>
+            <Button 
+              onClick={onFirebaseReset}
+              variant="warning"
+              style={{ marginRight: 'var(--space-md)' }}
+            >
+              房間重置工具
             </Button>
             <Button 
               onClick={handleLogout}
@@ -275,6 +289,13 @@ const RoomManager = ({ onManageQuestions, onTestVictory, isMobile }) => {
             測試勝利
           </Button>
           <Button 
+            onClick={onFirebaseReset}
+            variant="warning"
+            size="sm"
+          >
+            重置工具
+          </Button>
+          <Button 
             onClick={handleLogout}
             variant="danger"
             size="sm"
@@ -298,6 +319,13 @@ const RoomManager = ({ onManageQuestions, onTestVictory, isMobile }) => {
             style={{ marginRight: 'var(--space-md)' }}
           >
             測試勝利畫面
+          </Button>
+          <Button 
+            onClick={onFirebaseReset}
+            variant="warning"
+            style={{ marginRight: 'var(--space-md)' }}
+          >
+            房間重置工具
           </Button>
           <Button 
             onClick={handleLogout}
