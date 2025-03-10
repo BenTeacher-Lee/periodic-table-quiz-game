@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 最終修復版
+// src/components/GameArea.js - 緊急修復版
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -32,34 +32,34 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
   // UI狀態
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
-  const [isGameOver, setIsGameOver] = useState(false);
+  const [manualGameOver, setManualGameOver] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const animationIdRef = useRef(0);
   const buzzButtonRef = useRef(null);
   
-  // 日誌輸出關鍵狀態變化 - 用於調試
+  // 初始加載標記 - 防止錯誤觸發結算畫面
   useEffect(() => {
-    console.log("GameArea - 關鍵狀態:", {
-      gameStatus,
-      winner,
-      isGameOver,
-      playersCount: players.length,
-      hasWinningPlayer: players.some(p => p.score >= 20)
-    });
-  }, [gameStatus, winner, isGameOver, players]);
-  
-  // 專注監聽勝利條件 - 更可靠的檢測邏輯
-  useEffect(() => {
-    // 檢查各種可能的勝利條件
-    const victory = 
-      gameStatus === '遊戲結束' || 
-      winner !== null || 
-      players.some(player => player.score >= 20);
+    // 延遲設置初始加載完成標記，避免初始化時錯誤觸發結算畫面
+    const timer = setTimeout(() => {
+      setInitialLoadComplete(true);
+      console.log("初始加載完成，現在開始檢測遊戲結束條件");
+    }, 1000);
     
-    if (victory && !isGameOver) {
-      console.log("檢測到遊戲結束條件，顯示勝利畫面");
-      setIsGameOver(true);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // 日誌輸出關鍵狀態變化 - 調試用
+  useEffect(() => {
+    if (initialLoadComplete) {
+      console.log("GameArea - 狀態更新:", {
+        gameStatus,
+        winner,
+        playersCount: players.length,
+        hasScoringPlayer: players.some(p => p.score > 0),
+        hasHighScorePlayer: players.some(p => p.score >= 20)
+      });
     }
-  }, [gameStatus, winner, players, isGameOver]);
+  }, [gameStatus, winner, players, initialLoadComplete]);
   
   // 檢查當前玩家是否可以搶答
   const canPlayerBuzz = !currentPlayer && !showingAnswer && !disabledPlayers.includes(playerName);
@@ -122,9 +122,21 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     );
   }
 
+  // 遊戲結束條件 - 更嚴格的檢測邏輯，防止錯誤觸發
+  const shouldShowVictory = initialLoadComplete && (
+    manualGameOver || 
+    (gameStatus === '遊戲結束' && winner) ||
+    (players.some(p => p.score >= 20) && players.some(p => p.score > 0)) // 確保至少有得分才能結束
+  );
+  
   // 遊戲結束 - 顯示勝利畫面
-  if (isGameOver || gameStatus === '遊戲結束' || winner) {
-    console.log("準備顯示勝利畫面");
+  if (shouldShowVictory) {
+    console.log("顯示勝利畫面, 原因:", {
+      manualGameOver,
+      gameStatus,
+      winner,
+      highScorePlayers: players.filter(p => p.score >= 20).map(p => `${p.name}(${p.score})`)
+    });
     
     // 確定勝利者
     let actualWinner = winner;
@@ -152,8 +164,13 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
       <GameVictory 
         players={players} 
         winner={actualWinner} 
-        onRestart={restartGame} 
+        onRestart={() => {
+          console.log("點擊重新開始遊戲");
+          setManualGameOver(false);
+          restartGame();
+        }} 
         onEnd={() => {
+          console.log("點擊結束遊戲");
           endGame();
           if (onGameEnd) onGameEnd();
         }}
@@ -209,6 +226,25 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
   // 遊戲進行中
   return (
     <div className="game-container">
+      {/* 開發調試按鈕 - 應在生產環境中刪除 */}
+      <div style={{ position: 'fixed', top: '5px', right: '5px', zIndex: 10000 }}>
+        <button 
+          onClick={() => {
+            console.log("手動觸發遊戲結束");
+            setManualGameOver(true);
+          }}
+          style={{ 
+            fontSize: '12px', 
+            padding: '2px 5px', 
+            backgroundColor: 'rgba(255,0,0,0.2)', 
+            border: '1px solid red',
+            borderRadius: '4px'
+          }}
+        >
+          測試勝利
+        </button>
+      </div>
+      
       {/* 主遊戲區 */}
       <div className="game-content">
         <Card>

@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 最終修復版
+// src/hooks/useGame.js - 重啟功能修復版
 import { useState, useEffect, useRef } from 'react';
 import { ref, onValue, get, set, off, remove, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -24,25 +24,26 @@ export const useGame = (roomId, playerName) => {
     playerName,
     answerTimerId: null,
     checkVictoryTimerId: null,
-    nextQuestionTimerId: null
+    nextQuestionTimerId: null,
+    lastRestartAttempt: 0, // 用於防止重覆重啟
   });
   
   // 清理所有計時器函數
   const clearAllTimers = () => {
     if (gameRef.current.answerTimerId) {
-      console.log("🔄 清理答題計時器");
+      console.log("清理答題計時器");
       clearInterval(gameRef.current.answerTimerId);
       gameRef.current.answerTimerId = null;
     }
     
     if (gameRef.current.checkVictoryTimerId) {
-      console.log("🔄 清理勝利檢查計時器");
+      console.log("清理勝利檢查計時器");
       clearInterval(gameRef.current.checkVictoryTimerId);
       gameRef.current.checkVictoryTimerId = null;
     }
     
     if (gameRef.current.nextQuestionTimerId) {
-      console.log("🔄 清理下一題計時器");
+      console.log("清理下一題計時器");
       clearTimeout(gameRef.current.nextQuestionTimerId);
       gameRef.current.nextQuestionTimerId = null;
     }
@@ -50,7 +51,7 @@ export const useGame = (roomId, playerName) => {
   
   // 啟動答題倒計時
   const startAnswerTimer = () => {
-    console.log("⏱️ 啟動答題計時器");
+    console.log("啟動答題計時器");
     
     // 首先清理已有計時器
     if (gameRef.current.answerTimerId) {
@@ -89,7 +90,7 @@ export const useGame = (roomId, playerName) => {
   const handleTimeOut = async () => {
     const { roomId, playerName } = gameRef.current;
     
-    console.log("⏱️ 答題時間到，標記為答錯");
+    console.log("答題時間到，標記為答錯");
     
     try {
       // 獲取最新房間數據
@@ -113,7 +114,7 @@ export const useGame = (roomId, playerName) => {
         lastActivity: serverTimestamp()
       });
     } catch (error) {
-      console.error("❌ 處理超時錯誤:", error);
+      console.error("處理超時錯誤:", error);
     }
   };
   
@@ -122,15 +123,15 @@ export const useGame = (roomId, playerName) => {
     const { roomId, playerName } = gameRef.current;
     
     if (!roomId || !playerName) {
-      console.log("❌ 缺少房間ID或玩家名稱");
+      console.log("缺少房間ID或玩家名稱");
       return;
     }
     
-    console.log("🎮 玩家嘗試搶答:", playerName);
+    console.log("玩家嘗試搶答:", playerName);
     
     // 檢查是否被禁用
     if (disabledPlayers.includes(playerName)) {
-      console.log("❌ 玩家已被禁用，無法搶答");
+      console.log("玩家已被禁用，無法搶答");
       return;
     }
     
@@ -140,7 +141,7 @@ export const useGame = (roomId, playerName) => {
       const snapshot = await get(roomRef);
       
       if (!snapshot.exists()) {
-        console.log("❌ 房間不存在");
+        console.log("房間不存在");
         return;
       }
       
@@ -148,7 +149,7 @@ export const useGame = (roomId, playerName) => {
       
       // 檢查是否已有人搶答或正在顯示答案
       if (roomData.currentPlayer || roomData.showingAnswer) {
-        console.log("❌ 已有人搶答或正在顯示答案");
+        console.log("已有人搶答或正在顯示答案");
         return;
       }
       
@@ -159,9 +160,9 @@ export const useGame = (roomId, playerName) => {
         lastActivity: serverTimestamp()
       });
       
-      console.log("✅ 搶答成功");
+      console.log("搶答成功");
     } catch (error) {
-      console.error("❌ 搶答錯誤:", error);
+      console.error("搶答錯誤:", error);
     }
   };
   
@@ -170,11 +171,11 @@ export const useGame = (roomId, playerName) => {
     const { roomId, playerName } = gameRef.current;
     
     if (!roomId || !playerName) {
-      console.log("❌ 缺少房間ID或玩家名稱");
+      console.log("缺少房間ID或玩家名稱");
       return;
     }
     
-    console.log("🔍 檢查答案, 選擇:", selectedOption);
+    console.log("檢查答案, 選擇:", selectedOption);
     
     try {
       // 獲取最新房間數據
@@ -182,7 +183,7 @@ export const useGame = (roomId, playerName) => {
       const snapshot = await get(roomRef);
       
       if (!snapshot.exists()) {
-        console.log("❌ 房間不存在");
+        console.log("房間不存在");
         return;
       }
       
@@ -190,18 +191,18 @@ export const useGame = (roomId, playerName) => {
       
       // 檢查是否是當前搶答者
       if (roomData.currentPlayer !== playerName) {
-        console.log("❌ 非當前搶答者");
+        console.log("非當前搶答者");
         return;
       }
       
       // 檢查問題是否存在
       if (!roomData.currentQuestion) {
-        console.log("❌ 當前沒有問題");
+        console.log("當前沒有問題");
         return;
       }
       
       const correctAnswer = roomData.currentQuestion.correctAnswer;
-      console.log(`🔍 答案檢查: 選擇=${selectedOption}, 正確=${correctAnswer}`);
+      console.log(`答案檢查: 選擇=${selectedOption}, 正確=${correctAnswer}`);
       
       // 清除答題計時器
       if (gameRef.current.answerTimerId) {
@@ -214,13 +215,13 @@ export const useGame = (roomId, playerName) => {
       
       if (isCorrect) {
         // 答案正確，更新分數
-        console.log("✅ 回答正確!");
+        console.log("回答正確!");
         
         // 計算新分數
         const currentScore = Number((roomData.players[playerName] && roomData.players[playerName].score) || 0);
         const newScore = currentScore + 1;
         
-        console.log(`📊 分數更新: ${currentScore} -> ${newScore}`);
+        console.log(`分數更新: ${currentScore} -> ${newScore}`);
         
         // 更新玩家數據
         const updatedPlayers = { ...roomData.players };
@@ -233,7 +234,7 @@ export const useGame = (roomId, playerName) => {
         const reachedVictory = newScore >= VICTORY_SCORE;
         
         if (reachedVictory) {
-          console.log(`🏆 玩家 ${playerName} 達到勝利分數: ${newScore}`);
+          console.log(`玩家 ${playerName} 達到勝利分數: ${newScore}`);
           
           // 更新房間狀態為遊戲結束
           await set(roomRef, {
@@ -269,18 +270,18 @@ export const useGame = (roomId, playerName) => {
                 
                 // 確保遊戲仍在進行中
                 if (latestRoomData.status === '遊戲中' && !latestRoomData.winner) {
-                  console.log("🔄 切換到下一題");
+                  console.log("切換到下一題");
                   await getRandomQuestion();
                 }
               }
             } catch (error) {
-              console.error("❌ 獲取下一題錯誤:", error);
+              console.error("獲取下一題錯誤:", error);
             }
           }, 2000);
         }
       } else {
         // 答案錯誤，更新禁用列表
-        console.log("❌ 回答錯誤!");
+        console.log("回答錯誤!");
         
         // 將當前玩家添加到禁用列表
         const newDisabledPlayers = [...(roomData.disabledPlayers || [])];
@@ -297,7 +298,7 @@ export const useGame = (roomId, playerName) => {
         });
       }
     } catch (error) {
-      console.error("❌ 檢查答案錯誤:", error);
+      console.error("檢查答案錯誤:", error);
     }
   };
   
@@ -306,11 +307,11 @@ export const useGame = (roomId, playerName) => {
     const { roomId } = gameRef.current;
     
     if (!roomId) {
-      console.log("❌ 缺少房間ID");
+      console.log("缺少房間ID");
       return;
     }
     
-    console.log("🔄 獲取隨機題目");
+    console.log("獲取隨機題目");
     
     try {
       // 獲取所有題目
@@ -322,7 +323,7 @@ export const useGame = (roomId, playerName) => {
       const roomSnapshot = await get(roomRef);
       
       if (!roomSnapshot.exists()) {
-        console.log("❌ 房間不存在");
+        console.log("房間不存在");
         return;
       }
       
@@ -330,7 +331,7 @@ export const useGame = (roomId, playerName) => {
       
       // 如果沒有題目，使用默認題目
       if (!questionsSnapshot.exists() || !questionsSnapshot.val()) {
-        console.log("ℹ️ 找不到題目，使用默認題目");
+        console.log("找不到題目，使用默認題目");
         
         const defaultQuestion = {
           question: '氫元素在元素週期表中的原子序數為多少？',
@@ -370,7 +371,7 @@ export const useGame = (roomId, playerName) => {
       
       // 如果沒有未使用題目，重置
       if (unusedQuestions.length === 0) {
-        console.log("ℹ️ 所有題目已使用過，重置題目列表");
+        console.log("所有題目已使用過，重置題目列表");
         
         // 隨機選擇一個題目
         const randomIndex = Math.floor(Math.random() * questionsArray.length);
@@ -398,39 +399,55 @@ export const useGame = (roomId, playerName) => {
         lastActivity: serverTimestamp()
       });
       
-      console.log("✅ 成功更新隨機題目");
+      console.log("成功更新隨機題目");
     } catch (error) {
-      console.error("❌ 獲取隨機題目錯誤:", error);
+      console.error("獲取隨機題目錯誤:", error);
     }
   };
   
-  // 重啟遊戲
+  // 重啟遊戲 - 增強版本，防止重複調用、確保徹底重置
   const restartGame = async () => {
     const { roomId } = gameRef.current;
     
     if (!roomId) {
-      console.log("❌ 缺少房間ID");
+      console.log("缺少房間ID，無法重啟遊戲");
       return;
     }
     
-    console.log("🔄 重新開始遊戲");
+    // 防止短時間內重複調用
+    const now = Date.now();
+    if (now - gameRef.current.lastRestartAttempt < 3000) {
+      console.log("重啟操作過於頻繁，請稍後再試");
+      return;
+    }
+    
+    gameRef.current.lastRestartAttempt = now;
+    console.log("嘗試重新開始遊戲");
     
     try {
       // 清理所有計時器
       clearAllTimers();
+      
+      // 重置本地狀態
+      setWinner(null);
+      setGameStatus('遊戲中');
+      setUsedQuestions([]);
+      setDisabledPlayers([]);
+      setShowingAnswer(false);
+      setCurrentPlayer(null);
       
       // 獲取當前房間數據
       const roomRef = ref(database, `rooms/${roomId}`);
       const snapshot = await get(roomRef);
       
       if (!snapshot.exists()) {
-        console.log("❌ 房間不存在");
+        console.log("房間不存在，無法重啟");
         return;
       }
       
       const roomData = snapshot.val();
       
-      // 重置玩家分數
+      // 重置所有玩家分數
       const resetPlayers = {};
       if (roomData.players) {
         Object.keys(roomData.players).forEach(name => {
@@ -441,25 +458,37 @@ export const useGame = (roomId, playerName) => {
         });
       }
       
-      // 更新房間狀態
+      // 先重置基本狀態
       await set(roomRef, {
         ...roomData,
         status: '遊戲中',
         winner: null,
         currentPlayer: null,
-        usedQuestions: [],
         showingAnswer: false,
         disabledPlayers: [],
         players: resetPlayers,
+        usedQuestions: [],
         lastActivity: serverTimestamp()
       });
       
-      // 獲取新題目
-      await getRandomQuestion();
+      console.log("遊戲狀態已重置，現在獲取新題目");
       
-      console.log("✅ 遊戲重啟成功");
+      // 確保狀態已更新後再獲取新題目
+      setTimeout(async () => {
+        // 再次檢查房間狀態
+        try {
+          const refreshedSnapshot = await get(roomRef);
+          if (refreshedSnapshot.exists()) {
+            console.log("重啟遊戲：獲取新題目");
+            await getRandomQuestion();
+            console.log("遊戲成功重啟！");
+          }
+        } catch (error) {
+          console.error("重啟遊戲獲取新題目錯誤:", error);
+        }
+      }, 500);
     } catch (error) {
-      console.error("❌ 重啟遊戲錯誤:", error);
+      console.error("重啟遊戲錯誤:", error);
     }
   };
   
@@ -468,11 +497,11 @@ export const useGame = (roomId, playerName) => {
     const { roomId } = gameRef.current;
     
     if (!roomId) {
-      console.log("❌ 缺少房間ID");
+      console.log("缺少房間ID");
       return;
     }
     
-    console.log("🔄 結束遊戲");
+    console.log("結束遊戲");
     
     try {
       // 清理所有計時器
@@ -483,7 +512,7 @@ export const useGame = (roomId, playerName) => {
       const snapshot = await get(roomRef);
       
       if (!snapshot.exists()) {
-        console.log("❌ 房間不存在");
+        console.log("房間不存在");
         return;
       }
       
@@ -514,9 +543,18 @@ export const useGame = (roomId, playerName) => {
         lastActivity: serverTimestamp()
       });
       
-      console.log("✅ 遊戲結束成功");
+      // 重置本地狀態
+      setWinner(null);
+      setGameStatus('等待中');
+      setCurrentQuestion(null);
+      setCurrentPlayer(null);
+      setUsedQuestions([]);
+      setDisabledPlayers([]);
+      setShowingAnswer(false);
+      
+      console.log("遊戲結束成功");
     } catch (error) {
-      console.error("❌ 結束遊戲錯誤:", error);
+      console.error("結束遊戲錯誤:", error);
     }
   };
   
@@ -525,11 +563,11 @@ export const useGame = (roomId, playerName) => {
     const { roomId } = gameRef.current;
     
     if (!roomId) {
-      console.log("❌ 缺少房間ID");
+      console.log("缺少房間ID");
       return;
     }
     
-    console.log("🔄 強制結束遊戲");
+    console.log("強制結束遊戲");
     
     try {
       // 清理所有計時器
@@ -539,9 +577,9 @@ export const useGame = (roomId, playerName) => {
       const roomRef = ref(database, `rooms/${roomId}`);
       await remove(roomRef);
       
-      console.log("✅ 強制結束遊戲成功");
+      console.log("強制結束遊戲成功");
     } catch (error) {
-      console.error("❌ 強制結束遊戲錯誤:", error);
+      console.error("強制結束遊戲錯誤:", error);
     }
   };
   
@@ -566,7 +604,7 @@ export const useGame = (roomId, playerName) => {
   useEffect(() => {
     if (!roomId) return;
     
-    console.log("🔄 設置房間監聽:", roomId);
+    console.log("設置房間監聽:", roomId);
     gameRef.current.roomId = roomId;
     gameRef.current.playerName = playerName;
     
@@ -575,12 +613,12 @@ export const useGame = (roomId, playerName) => {
     // 設置房間監聽
     const handleRoomChange = (snapshot) => {
       if (!snapshot.exists()) {
-        console.log("❌ 房間不存在或已被刪除");
+        console.log("房間不存在或已被刪除");
         return;
       }
       
       const roomData = snapshot.val();
-      console.log("📊 房間數據更新:", {
+      console.log("房間數據更新:", {
         status: roomData.status,
         winner: roomData.winner,
         currentPlayer: roomData.currentPlayer,
@@ -595,14 +633,14 @@ export const useGame = (roomId, playerName) => {
       const prevCurrentPlayer = currentPlayer;
       
       if (newCurrentPlayer !== prevCurrentPlayer) {
-        console.log(`🔄 搶答者變更: ${prevCurrentPlayer || '無'} -> ${newCurrentPlayer || '無'}`);
+        console.log(`搶答者變更: ${prevCurrentPlayer || '無'} -> ${newCurrentPlayer || '無'}`);
         
         // 更新當前搶答者
         setCurrentPlayer(newCurrentPlayer);
         
         // 如果有新搶答者，啟動計時器
         if (newCurrentPlayer) {
-          console.log(`⏱️ 玩家 ${newCurrentPlayer} 開始搶答，啟動計時器`);
+          console.log(`玩家 ${newCurrentPlayer} 開始搶答，啟動計時器`);
           startAnswerTimer();
         } else if (!roomData.showingAnswer) {
           // 無搶答者且不在顯示答案狀態，確保計時器重置
@@ -620,7 +658,7 @@ export const useGame = (roomId, playerName) => {
       // 更新勝利者
       const newWinner = roomData.winner;
       if (newWinner !== winner) {
-        console.log(`🏆 勝利者更新: ${winner || '無'} -> ${newWinner || '無'}`);
+        console.log(`勝利者更新: ${winner || '無'} -> ${newWinner || '無'}`);
         setWinner(newWinner);
         
         // 如果有勝利者，清理所有計時器
@@ -648,7 +686,7 @@ export const useGame = (roomId, playerName) => {
           const winningPlayer = checkWinner(playerList);
           
           if (winningPlayer) {
-            console.log(`🏆 發現勝利玩家: ${winningPlayer.name} (${winningPlayer.score}分)`);
+            console.log(`發現勝利玩家: ${winningPlayer.name} (${winningPlayer.score}分)`);
             
             // 更新房間狀態
             set(roomRef, {
@@ -657,7 +695,7 @@ export const useGame = (roomId, playerName) => {
               winner: winningPlayer.name,
               lastActivity: serverTimestamp()
             }).catch(error => {
-              console.error("❌ 更新勝利狀態錯誤:", error);
+              console.error("更新勝利狀態錯誤:", error);
             });
           }
         }
@@ -686,7 +724,7 @@ export const useGame = (roomId, playerName) => {
             const winningPlayer = checkWinner(playerList);
             
             if (winningPlayer) {
-              console.log(`🏆 計時器檢查發現勝利玩家: ${winningPlayer.name} (${winningPlayer.score}分)`);
+              console.log(`計時器檢查發現勝利玩家: ${winningPlayer.name} (${winningPlayer.score}分)`);
               
               // 更新房間狀態
               await set(roomRef, {
@@ -699,7 +737,7 @@ export const useGame = (roomId, playerName) => {
           }
         }
       } catch (error) {
-        console.error("❌ 勝利檢查錯誤:", error);
+        console.error("勝利檢查錯誤:", error);
       }
     }, 3000);
     
@@ -710,18 +748,18 @@ export const useGame = (roomId, playerName) => {
         
         // 如果已經有勝利者，確保本地狀態同步
         if (roomData.winner && roomData.status === '遊戲結束') {
-          console.log(`🏆 初始檢查發現勝利者: ${roomData.winner}`);
+          console.log(`初始檢查發現勝利者: ${roomData.winner}`);
           setWinner(roomData.winner);
           setGameStatus('遊戲結束');
         }
       }
     }).catch(error => {
-      console.error("❌ 初始檢查錯誤:", error);
+      console.error("初始檢查錯誤:", error);
     });
     
     // 清理函數
     return () => {
-      console.log("🔄 清理房間監聽和計時器");
+      console.log("清理房間監聽和計時器");
       clearAllTimers();
       off(roomRef);
     };

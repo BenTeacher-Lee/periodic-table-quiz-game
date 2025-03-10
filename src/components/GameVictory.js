@@ -1,4 +1,4 @@
-// src/components/GameVictory.js - 移動端優化版
+// src/components/GameVictory.js - 按鈕修復版
 import React, { useEffect, useState } from 'react';
 import Button from './ui/Button';
 import '../styles/animations.css';
@@ -42,10 +42,52 @@ const MedalIcon = ({ color, size = 60 }) => (
 const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) => {
   const [showAnimation, setShowAnimation] = useState(false);
   const [fireworks, setFireworks] = useState([]);
+  const [clickedRestart, setClickedRestart] = useState(false);
+  const [clickedEnd, setClickedEnd] = useState(false);
 
   // 排序玩家並找出前三名
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  const sortedPlayers = [...(players || [])].sort((a, b) => b.score - a.score);
   const topThreePlayers = sortedPlayers.slice(0, 3);
+  
+  // 確保玩家數據有效
+  useEffect(() => {
+    console.log("勝利畫面接收到玩家數據:", {
+      playersCount: (players || []).length,
+      winner,
+      topPlayers: sortedPlayers.slice(0, 3).map(p => `${p.name}(${p.score})`)
+    });
+  }, [players, winner, sortedPlayers]);
+  
+  // 處理按鈕點擊 - 增加防抖動
+  const handleRestart = () => {
+    if (clickedRestart) return; // 防止重複點擊
+    
+    console.log("點擊重新開始按鈕");
+    setClickedRestart(true);
+    
+    // 防止重複觸發
+    setTimeout(() => {
+      if (onRestart) {
+        console.log("執行重新開始回調");
+        onRestart();
+      }
+    }, 100);
+  };
+  
+  const handleEnd = () => {
+    if (clickedEnd) return; // 防止重複點擊
+    
+    console.log("點擊結束遊戲按鈕");
+    setClickedEnd(true);
+    
+    // 防止重複觸發
+    setTimeout(() => {
+      if (onEnd) {
+        console.log("執行結束遊戲回調");
+        onEnd();
+      }
+    }, 100);
+  };
   
   // 生成煙花效果 - 移動端減少煙花數量
   useEffect(() => {
@@ -91,6 +133,9 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
       clearInterval(fireworksInterval);
     };
   }, [isMobile]);
+
+  // 驗證是否有有效玩家數據
+  const hasValidPlayers = Array.isArray(players) && players.length > 0;
 
   return (
     <div style={{ 
@@ -155,7 +200,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
               color: '#FFD700', 
               fontWeight: 'bold',
               fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
-            }}>{winner}</span> 獲得勝利！
+            }}>{winner || '勝利者'}</span> 獲得勝利！
           </p>
         </div>
 
@@ -194,7 +239,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
                 gap: 'var(--space-sm)'
               }}>
                 {/* 第二名 */}
-                {topThreePlayers.length > 1 && (
+                {hasValidPlayers && topThreePlayers.length > 1 && (
                   <div style={{ 
                     order: 1, 
                     width: '30%',
@@ -223,7 +268,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
                 )}
                 
                 {/* 第一名 */}
-                {topThreePlayers.length > 0 && (
+                {hasValidPlayers && topThreePlayers.length > 0 && (
                   <div style={{ 
                     order: 2, 
                     width: '40%',
@@ -262,7 +307,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
                 )}
                 
                 {/* 第三名 */}
-                {topThreePlayers.length > 2 && (
+                {hasValidPlayers && topThreePlayers.length > 2 && (
                   <div style={{ 
                     order: 3, 
                     width: '30%',
@@ -292,7 +337,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
               </div>
             ) : (
               // 桌面版佈局 - 原始設計
-              topThreePlayers.map((player, index) => {
+              hasValidPlayers && topThreePlayers.map((player, index) => {
                 // 根據排名決定樣式
                 const isWinner = index === 0;
                 
@@ -377,7 +422,7 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
           </div>
           
           {/* 其他玩家列表 */}
-          {sortedPlayers.length > 3 && (
+          {hasValidPlayers && sortedPlayers.length > 3 && (
             <div style={{
               backgroundColor: 'white',
               borderRadius: 'var(--radius-lg)',
@@ -424,31 +469,60 @@ const GameVictory = ({ players, winner, onRestart, onEnd, isMobile = false }) =>
             </div>
           )}
 
-          {/* 按鈕組 */}
-          <div className="button-group" style={{ 
+          {/* 按鈕組 - 修改為原生HTML按鈕，避免樣式問題 */}
+          <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
-            gap: 'var(--space-md)',
+            gap: isMobile ? 'var(--space-md)' : 'var(--space-xl)',
             flexWrap: 'wrap',
-            flexDirection: isMobile ? 'column' : 'row'
+            flexDirection: isMobile ? 'column' : 'row',
+            marginTop: 'var(--space-xl)'
           }}>
-            <Button 
-              onClick={onRestart}
-              variant="primary"
-              size={isMobile ? 'md' : 'lg'}
-              style={isMobile ? { width: '100%' } : { minWidth: '180px' }}
+            <button 
+              onClick={handleRestart}
+              disabled={clickedRestart}
+              style={{
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-md) var(--space-xl)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                flex: isMobile ? 'auto' : '1',
+                minWidth: isMobile ? 'auto' : '180px',
+                maxWidth: isMobile ? 'auto' : '250px',
+                transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-md)',
+                opacity: clickedRestart ? 0.7 : 1
+              }}
             >
               再來一局
-            </Button>
+            </button>
             
-            <Button 
-              onClick={onEnd}
-              variant="danger"
-              size={isMobile ? 'md' : 'lg'}
-              style={isMobile ? { width: '100%' } : { minWidth: '180px' }}
+            <button 
+              onClick={handleEnd}
+              disabled={clickedEnd}
+              style={{
+                backgroundColor: 'var(--danger)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-md) var(--space-xl)',
+                fontSize: 'var(--text-lg)',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                flex: isMobile ? 'auto' : '1',
+                minWidth: isMobile ? 'auto' : '180px',
+                maxWidth: isMobile ? 'auto' : '250px',
+                transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-md)',
+                opacity: clickedEnd ? 0.7 : 1
+              }}
             >
               結束遊戲
-            </Button>
+            </button>
           </div>
         </div>
       </div>
