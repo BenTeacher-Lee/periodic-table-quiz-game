@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 完全優化版
+// src/components/GameArea.js - 最終修復版
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -7,13 +7,12 @@ import AnswerOptions from './game/AnswerOptions';
 import ScoreBoard from './game/ScoreBoard';
 import Timer from './ui/Timer';
 import Card from './ui/Card';
-import Button from './ui/Button';
 import '../styles/components.css';
 import '../styles/animations.css';
 import '../styles/mobile.css';
 
 const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
-  // 使用優化後的hook
+  // 遊戲邏輯hook
   const {
     currentQuestion,
     currentPlayer,
@@ -29,44 +28,49 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     answerTime,
     disabledPlayers
   } = useGame(roomId, playerName);
-  
+
   // UI狀態
   const [showCorrectEffect, setShowCorrectEffect] = useState(false);
   const [scoreAnimations, setScoreAnimations] = useState([]);
+  const [isGameOver, setIsGameOver] = useState(false);
   const animationIdRef = useRef(0);
   const buzzButtonRef = useRef(null);
-  const [gameOverTriggered, setGameOverTriggered] = useState(false);
-
-  // 監控遊戲狀態 - 增強版
+  
+  // 日誌輸出關鍵狀態變化 - 用於調試
   useEffect(() => {
-    console.log("GameArea - 狀態變更:", {
+    console.log("GameArea - 關鍵狀態:", {
       gameStatus,
       winner,
+      isGameOver,
       playersCount: players.length,
-      currentQuestion: !!currentQuestion,
       hasWinningPlayer: players.some(p => p.score >= 20)
     });
+  }, [gameStatus, winner, isGameOver, players]);
+  
+  // 專注監聽勝利條件 - 更可靠的檢測邏輯
+  useEffect(() => {
+    // 檢查各種可能的勝利條件
+    const victory = 
+      gameStatus === '遊戲結束' || 
+      winner !== null || 
+      players.some(player => player.score >= 20);
     
-    // 特殊處理遊戲結束狀態
-    if ((gameStatus === '遊戲結束' || winner) && !gameOverTriggered) {
-      console.log("檢測到遊戲結束狀態，觸發GameVictory顯示");
-      setGameOverTriggered(true);
+    if (victory && !isGameOver) {
+      console.log("檢測到遊戲結束條件，顯示勝利畫面");
+      setIsGameOver(true);
     }
-  }, [gameStatus, winner, players, currentQuestion, gameOverTriggered]);
+  }, [gameStatus, winner, players, isGameOver]);
   
   // 檢查當前玩家是否可以搶答
   const canPlayerBuzz = !currentPlayer && !showingAnswer && !disabledPlayers.includes(playerName);
   
-  // 處理搶答按鈕點擊 - 增強版
+  // 處理搶答按鈕點擊
   const handleBuzzClick = () => {
-    if (!canPlayerBuzz) {
-      console.log("無法搶答:", { currentPlayer, showingAnswer, isDisabled: disabledPlayers.includes(playerName) });
-      return;
-    }
+    if (!canPlayerBuzz) return;
     
-    console.log("點擊搶答按鈕");
+    console.log("玩家點擊搶答按鈕");
     
-    // 立即顯示視覺反饋
+    // 視覺反饋
     if (buzzButtonRef.current) {
       buzzButtonRef.current.style.transform = 'scale(0.95)';
       setTimeout(() => {
@@ -76,34 +80,36 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
       }, 100);
     }
     
+    // 執行搶答
     quickAnswer();
   };
 
-  // 處理答案檢查和視覺效果
+  // 處理答案選擇
   const handleCheckAnswer = (index) => {
+    // 檢查是否為正確答案並顯示特效
     if (currentQuestion && index === currentQuestion.correctAnswer) {
-      // 正確答案效果
+      // 正確答案視覺效果
       setShowCorrectEffect(true);
       
-      // 生成加分動畫
+      // 分數動畫
       const newAnimation = {
         id: animationIdRef.current++,
         x: Math.random() * 200
       };
       setScoreAnimations(prev => [...prev, newAnimation]);
       
-      // 重置效果
+      // 定時清除效果
       setTimeout(() => {
         setShowCorrectEffect(false);
       }, 1000);
       
-      // 移除動畫
+      // 定時清除動畫
       setTimeout(() => {
         setScoreAnimations(prev => prev.filter(anim => anim.id !== newAnimation.id));
       }, 1000);
     }
     
-    // 調用 hook 中的 checkAnswer
+    // 調用hook進行答案檢查
     checkAnswer(index);
   };
 
@@ -116,41 +122,31 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     );
   }
 
-  // 檢查勝利條件 - 更寬鬆更穩健的判斷 
-  const isGameOver = gameOverTriggered || 
-                     gameStatus === '遊戲結束' || 
-                     !!winner || 
-                     (players.length > 0 && players.some(player => player.score >= 20));
-  
-  console.log("最終勝利判斷:", {
-    isGameOver,
-    gameOverTriggered,
-    gameStatus,
-    winner,
-    hasHighScorePlayer: players.some(player => player.score >= 20)
-  });
-
-  // 遊戲結束顯示勝利畫面
-  if (isGameOver) {
-    console.log("顯示勝利畫面:", { gameStatus, winner, players });
+  // 遊戲結束 - 顯示勝利畫面
+  if (isGameOver || gameStatus === '遊戲結束' || winner) {
+    console.log("準備顯示勝利畫面");
     
-    // 確保有勝利者，如果沒有明確勝利者，使用分數最高的玩家
-    const highScorePlayers = players.filter(p => p.score >= 20);
-    const highestScorePlayer = players.length > 0 ? 
-                              [...players].sort((a, b) => b.score - a.score)[0] : 
-                              null;
+    // 確定勝利者
+    let actualWinner = winner;
     
-    // 優先順序: 1.指定的winner 2.達到閾值的玩家 3.分數最高的玩家 4.當前玩家
-    const actualWinner = winner || 
-                         (highScorePlayers.length > 0 ? highScorePlayers[0].name : 
-                          (highestScorePlayer ? highestScorePlayer.name : playerName));
-    
-    console.log("最終勝利者計算:", {
-      specifiedWinner: winner,
-      highScorePlayers: highScorePlayers.map(p => `${p.name}(${p.score})`),
-      highestPlayer: highestScorePlayer ? `${highestScorePlayer.name}(${highestScorePlayer.score})` : null,
-      actualWinner
-    });
+    // 如果沒有明確的勝利者，選擇分數最高的玩家
+    if (!actualWinner) {
+      // 找出達到勝利分數的玩家
+      const highScorePlayers = players.filter(p => p.score >= 20);
+      
+      if (highScorePlayers.length > 0) {
+        // 如果有多個，選擇分數最高的
+        highScorePlayers.sort((a, b) => b.score - a.score);
+        actualWinner = highScorePlayers[0].name;
+      } else if (players.length > 0) {
+        // 否則選擇分數最高的玩家
+        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+        actualWinner = sortedPlayers[0].name;
+      } else {
+        // 兜底使用當前玩家
+        actualWinner = playerName;
+      }
+    }
     
     return (
       <GameVictory 
@@ -169,7 +165,7 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
   // 當前玩家是否被禁用
   const isPlayerDisabled = disabledPlayers.includes(playerName);
 
-  // 移動端搶答按鈕 - 增強版
+  // 移動端搶答按鈕
   const MobileBuzzButton = () => {
     if (!isMobile || !canPlayerBuzz) return null;
     
@@ -189,10 +185,10 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
       zIndex: 1000,
       boxShadow: 'var(--shadow-lg)',
       transition: 'transform 0.1s ease, background-color 0.1s ease',
-      WebkitTapHighlightColor: 'transparent', // 移除iOS點擊高亮
-      outline: 'none', // 移除點擊輪廓
-      WebkitAppearance: 'none', // 移除默認按鈕樣式
-      touchAction: 'manipulation', // 優化觸控
+      WebkitTapHighlightColor: 'transparent',
+      outline: 'none',
+      WebkitAppearance: 'none',
+      touchAction: 'manipulation',
       opacity: isPlayerDisabled ? 0.6 : 1,
       cursor: isPlayerDisabled ? 'not-allowed' : 'pointer'
     };
@@ -219,9 +215,9 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
           <div className="game-header">
             <h2 className="game-title">元素週期表搶答遊戲</h2>
             
-            {/* 根據遊戲狀態顯示不同的計時器 */}
+            {/* 計時器 */}
             {currentPlayer ? (
-              // 有人搶答時顯示答題倒計時
+              // 有人搶答時顯示答題計時器
               <Timer 
                 seconds={answerTime} 
                 variant={answerTime <= 5 ? 'warning' : 'normal'} 
@@ -254,7 +250,7 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
             </div>
           ))}
           
-          {/* 正確答案提示區塊 */}
+          {/* 正確答案提示 */}
           {(showCorrectEffect || showingAnswer) && (
             <div style={{
               position: 'absolute',
@@ -326,7 +322,7 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
               </div>
             )}
             
-            {/* 禁用玩家列表顯示 */}
+            {/* 禁用玩家列表 */}
             {disabledPlayers.length > 0 && (
               <div style={{ 
                 marginTop: 'var(--space-md)',
@@ -380,34 +376,6 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
                 正在切換到下一題...
               </div>
             )}
-            
-            {/* 開發工具: 顯示調試信息按鈕 */}
-            <button 
-              onClick={() => console.log({
-                gameStatus,
-                winner,
-                currentPlayer,
-                answerTime,
-                showingAnswer,
-                players: players.map(p => `${p.name}(${p.score})`),
-                disabledPlayers,
-                canPlayerBuzz,
-                isPlayerDisabled,
-                isGameOver,
-                gameOverTriggered
-              })}
-              style={{
-                position: 'fixed',
-                bottom: '5px',
-                left: '5px',
-                fontSize: '10px',
-                opacity: 0.3,
-                padding: '3px',
-                zIndex: 9999
-              }}
-            >
-              Debug
-            </button>
           </div>
         </Card>
       </div>
@@ -426,7 +394,7 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
         />
       </div>
 
-      {/* 移動端獨有的浮動搶答按鈕 */}
+      {/* 移動端搶答按鈕 */}
       <MobileBuzzButton />
     </div>
   );
