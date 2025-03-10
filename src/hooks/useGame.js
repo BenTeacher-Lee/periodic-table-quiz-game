@@ -1,4 +1,4 @@
-// src/hooks/useGame.js - 添加計時器和搶答冷卻
+// src/hooks/useGame.js - 優化勝利判斷邏輯
 import { useState, useEffect, useRef } from 'react';
 import { ref, onValue, update, get, set, off, remove, serverTimestamp } from 'firebase/database';
 import { database } from '../firebase';
@@ -18,20 +18,31 @@ export const useGame = (roomId, playerName) => {
   const roomIdRef = useRef(roomId);
   const playerNameRef = useRef(playerName);
   const gameStatusRef = useRef('waiting');
+  const winnerRef = useRef(null);
   const timerRef = useRef(null);
+  const victoryCheckRef = useRef(null);
   
   // 同步 ref 值
   useEffect(() => {
     roomIdRef.current = roomId;
     playerNameRef.current = playerName;
     gameStatusRef.current = gameStatus;
-  }, [roomId, playerName, gameStatus]);
+    winnerRef.current = winner;
+  }, [roomId, playerName, gameStatus, winner]);
 
   // 清理計時器
   const clearGameTimer = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+  };
+  
+  // 清理勝利檢查計時器
+  const clearVictoryTimer = () => {
+    if (victoryCheckRef.current) {
+      clearInterval(victoryCheckRef.current);
+      victoryCheckRef.current = null;
     }
   };
 
@@ -98,6 +109,54 @@ export const useGame = (roomId, playerName) => {
     }
   };
 
+  // 檢查勝利條件 - 新增獨立函數
+  const checkVictoryCondition = async (roomData, playerList) => {
+    // 避免重複執行
+    if (gameStatusRef.current === '遊戲結束' || winnerRef.current) {
+      console.log('已經處於遊戲結束狀態，跳過勝利檢查');
+      return false;
+    }
+    
+    try {
+      // 查找得分最高的玩家
+      const highScorePlayers = playerList.filter(player => player.score >= 20);
+      
+      if (highScorePlayers.length > 0) {
+        // 排序以確保選擇最高分
+        highScorePlayers.sort((a, b) => b.score - a.score);
+        const winningPlayer = highScorePlayers[0];
+        
+        console.log(`發現勝利者: ${winningPlayer.name} 達到 ${winningPlayer.score}分`);
+        
+        // 更新本地狀態
+        setGameStatus('遊戲結束');
+        setWinner(winningPlayer.name);
+        gameStatusRef.current = '遊戲結束';
+        winnerRef.current = winningPlayer.name;
+        
+        // 更新 Firebase
+        const roomRef = ref(database, `rooms/${roomIdRef.current}`);
+        await set(roomRef, {
+          ...roomData,
+          status: '遊戲結束',
+          winner: winningPlayer.name,
+          lastActivity: serverTimestamp()
+        });
+        
+        console.log('成功設置遊戲結束狀態');
+        
+        // 清除計時器
+        clearGameTimer();
+        clearVictoryTimer();
+        return true;
+      }
+    } catch (error) {
+      console.error('勝利條件檢查錯誤:', error);
+    }
+    
+    return false;
+  };
+
   // 監聽遊戲狀態
   useEffect(() => {
     if (!roomId) return;
@@ -105,59 +164,32 @@ export const useGame = (roomId, playerName) => {
     
     const roomRef = ref(database, `rooms/${roomId}`);
     
-    // 勝利條件強制檢查
-    const checkVictoryCondition = async () => {
+    // 設置勝利條件檢查計時器
+    victoryCheckRef.current = setInterval(async () => {
       try {
+        // 檢查當前狀態是否已經是遊戲結束
+        if (gameStatusRef.current === '遊戲結束' || winnerRef.current) {
+          return;
+        }
+        
         const snapshot = await get(roomRef);
         const roomData = snapshot.val();
         if (!roomData || !roomData.players) return;
         
-        // 查找得分最高的玩家
-        let highestScorePlayer = null;
-        let highestScore = 0;
+        // 檢查是否有分數達到勝利條件的玩家
+        const playerList = Object.keys(roomData.players).map(name => ({
+          name,
+          score: roomData.players[name].score || 0
+        }));
         
-        Object.entries(roomData.players).forEach(([name, data]) => {
-          const score = data.score || 0;
-          if (score >= 20 && score > highestScore) {
-            highestScore = score;
-            highestScorePlayer = name;
-          }
-        });
-        
-        // 如果有玩家達到勝利條件且遊戲未結束
-        if (highestScorePlayer && roomData.status !== '遊戲結束') {
-          console.log(`強制勝利檢查: ${highestScorePlayer} 達到 ${highestScore} 分`);
-          
-          // 同時更新本地狀態和 Firebase
-          setGameStatus('遊戲結束');
-          setWinner(highestScorePlayer);
-          
-          // 直接設置新數據而不是更新
-          await set(roomRef, {
-            ...roomData,
-            status: '遊戲結束',
-            winner: highestScorePlayer,
-            lastActivity: serverTimestamp()
-          });
-          
-          console.log('已強制設置遊戲結束狀態');
-          
-          // 清除計時器
-          clearGameTimer();
-        }
+        await checkVictoryCondition(roomData, playerList);
       } catch (error) {
-        console.error('勝利條件檢查錯誤:', error);
+        console.error('定期勝利檢查錯誤:', error);
       }
-    };
-    
-    // 初始檢查
-    checkVictoryCondition();
-    
-    // 設置定期檢查
-    const victoryCheckInterval = setInterval(checkVictoryCondition, 5000);
+    }, 3000); // 每3秒檢查一次
     
     // 監聽數據變化
-    const handleDataChange = (snapshot) => {
+    const handleDataChange = async (snapshot) => {
       const data = snapshot.val();
       if (!data) {
         console.log('房間數據不存在');
@@ -186,9 +218,16 @@ export const useGame = (roomId, playerName) => {
         setAnswerTime(15); // 重置計時器
       }
       
-      setGameStatus(data.status || 'waiting');
-      gameStatusRef.current = data.status || 'waiting';
-      setWinner(data.winner || null);
+      // 更新遊戲狀態
+      const newGameStatus = data.status || 'waiting';
+      setGameStatus(newGameStatus);
+      gameStatusRef.current = newGameStatus;
+      
+      // 更新勝利者
+      const newWinner = data.winner || null;
+      setWinner(newWinner);
+      winnerRef.current = newWinner;
+      
       setShowingAnswer(data.showingAnswer || false);
       setUsedQuestions(data.usedQuestions || []);
       
@@ -203,32 +242,16 @@ export const useGame = (roomId, playerName) => {
       if (data.players) {
         const playerList = Object.keys(data.players).map(name => ({
           name,
-          score: data.players[name].score || 0
+          score: Number(data.players[name].score) || 0  // 確保分數是數字類型
         }));
+        
+        // 更新本地玩家列表
         setPlayers(playerList);
         
-        // 實時檢查勝利條件
-        const winningPlayer = playerList.find(player => player.score >= 20);
-        if (winningPlayer && data.status !== '遊戲結束') {
-          console.log(`發現玩家達到勝利條件: ${winningPlayer.name}, ${winningPlayer.score}分`);
-          
-          // 立即更新本地狀態
-          setGameStatus('遊戲結束');
-          setWinner(winningPlayer.name);
-          
-          // 同時更新Firebase
-          // 使用 set 而不是 update 以確保完整更新
-          set(roomRef, {
-            ...data,
-            status: '遊戲結束',
-            winner: winningPlayer.name,
-            lastActivity: serverTimestamp()
-          }).catch(error => {
-            console.error('更新遊戲結束狀態錯誤:', error);
-          });
-          
-          // 清除計時器
-          clearGameTimer();
+        // 檢查是否有玩家已經達到勝利條件
+        // 如果當前狀態不是遊戲結束且沒有勝利者，則嘗試檢查
+        if (newGameStatus !== '遊戲結束' && !newWinner) {
+          await checkVictoryCondition(data, playerList);
         }
       }
     };
@@ -239,7 +262,7 @@ export const useGame = (roomId, playerName) => {
     // 清理函數
     return () => {
       console.log('清理房間監聽');
-      clearInterval(victoryCheckInterval);
+      clearVictoryTimer();
       clearGameTimer();
       // 確保徹底移除監聽
       off(roomRef);
@@ -316,24 +339,23 @@ export const useGame = (roomId, playerName) => {
         // 獲取玩家當前分數
         const playerRef = ref(database, `rooms/${currentRoomId}/players/${currentPlayerName}`);
         const playerSnapshot = await get(playerRef);
-        const currentScore = (playerSnapshot.val() && playerSnapshot.val().score) || 0;
+        const currentScore = Number((playerSnapshot.val() && playerSnapshot.val().score) || 0);
         const newScore = currentScore + 1;
         
         console.log('答對了! 舊分數:', currentScore, '新分數:', newScore);
         
-        // 清除所有禁用的玩家
+        // 更新後的玩家數據
+        const updatedPlayers = { ...roomData.players };
+        updatedPlayers[currentPlayerName] = {
+          ...updatedPlayers[currentPlayerName],
+          score: newScore
+        };
         
-        // 1. 先設置顯示答案狀態，同時更新分數
+        // 1. 先設置顯示答案狀態
         await set(roomRef, {
           ...roomData,
           showingAnswer: true,
-          players: {
-            ...roomData.players,
-            [currentPlayerName]: {
-              ...roomData.players[currentPlayerName],
-              score: newScore
-            }
-          },
+          players: updatedPlayers,
           disabledPlayers: [], // 重置禁用列表
           lastActivity: serverTimestamp()
         });
@@ -341,42 +363,46 @@ export const useGame = (roomId, playerName) => {
         // 更新本地禁用狀態
         setDisabledPlayers([]);
         
-        // 2. 檢查是否達到勝利條件
+        // 2. 檢查是否達到勝利條件 (20分)
         if (newScore >= 20) {
-          console.log('達到勝利條件, 設置遊戲結束狀態');
+          console.log('達到勝利條件! 設置遊戲結束狀態');
           
           // 立即更新本地狀態
           setGameStatus('遊戲結束');
           setWinner(currentPlayerName);
+          gameStatusRef.current = '遊戲結束';
+          winnerRef.current = currentPlayerName;
           
-          // 同時更新Firebase
+          // 更新Firebase
           await set(roomRef, {
             ...roomData,
             showingAnswer: true,
-            players: {
-              ...roomData.players,
-              [currentPlayerName]: {
-                ...roomData.players[currentPlayerName],
-                score: newScore
-              }
-            },
+            players: updatedPlayers,
             status: '遊戲結束',
             winner: currentPlayerName,
             disabledPlayers: [], // 重置禁用列表
             lastActivity: serverTimestamp()
           });
           
-          console.log('已設置遊戲結束狀態');
+          console.log('成功設置遊戲結束狀態!');
+          
+          // 清除計時器
+          clearGameTimer();
+          clearVictoryTimer();
         } else {
           // 3. 否則在延遲後獲取新題目
           setTimeout(async () => {
-            // 再次檢查遊戲狀態
-            const currentRoomSnapshot = await get(roomRef);
-            const currentRoomData = currentRoomSnapshot.val();
-            
-            if (currentRoomData && currentRoomData.status === '遊戲中') {
-              console.log('獲取下一題');
-              await getRandomQuestion();
+            try {
+              // 再次檢查遊戲狀態
+              const currentRoomSnapshot = await get(roomRef);
+              const currentRoomData = currentRoomSnapshot.val();
+              
+              if (currentRoomData && currentRoomData.status === '遊戲中') {
+                console.log('獲取下一題');
+                await getRandomQuestion();
+              }
+            } catch (error) {
+              console.error('獲取下一題錯誤:', error);
             }
           }, 2000);
         }
@@ -576,6 +602,12 @@ export const useGame = (roomId, playerName) => {
         });
       }
       
+      // 清除本地狀態
+      setWinner(null);
+      winnerRef.current = null;
+      setGameStatus('遊戲中');
+      gameStatusRef.current = '遊戲中';
+      
       // 更新房間狀態
       await set(roomRef, {
         ...roomData,
@@ -626,6 +658,12 @@ export const useGame = (roomId, playerName) => {
         });
       }
       
+      // 清除本地狀態
+      setWinner(null);
+      winnerRef.current = null;
+      setGameStatus('等待中');
+      gameStatusRef.current = '等待中';
+      
       // 更新房間狀態
       await set(roomRef, {
         ...roomData,
@@ -663,6 +701,14 @@ export const useGame = (roomId, playerName) => {
       // 重置計時器和禁用玩家列表
       setAnswerTime(15);
       setDisabledPlayers([]);
+      clearGameTimer();
+      clearVictoryTimer();
+      
+      // 清除本地狀態
+      setWinner(null);
+      winnerRef.current = null;
+      setGameStatus('等待中');
+      gameStatusRef.current = '等待中';
     } catch (error) {
       console.error('強制結束遊戲出錯:', error);
     }

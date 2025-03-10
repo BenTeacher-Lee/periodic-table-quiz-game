@@ -1,4 +1,4 @@
-// src/components/GameArea.js - 加入搶答計時器
+// src/components/GameArea.js - 優化勝利判斷邏輯
 import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../hooks/useGame';
 import GameVictory from './GameVictory';
@@ -34,10 +34,10 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
   const animationIdRef = useRef(0);
   const buzzButtonRef = useRef(null);
 
-  // 監控遊戲狀態
+  // 監控遊戲狀態 - 添加更多調試信息
   useEffect(() => {
-    console.log("GameArea - 遊戲狀態:", gameStatus, "勝利者:", winner);
-  }, [gameStatus, winner]);
+    console.log("GameArea - 遊戲狀態:", gameStatus, "勝利者:", winner, "玩家列表:", players);
+  }, [gameStatus, winner, players]);
 
   // 檢查當前玩家是否可以搶答
   const canPlayerBuzz = !currentPlayer && !showingAnswer && !disabledPlayers.includes(playerName);
@@ -96,16 +96,26 @@ const GameArea = ({ roomId, playerName, onGameEnd, isMobile }) => {
     );
   }
 
-  // 檢查勝利條件 - 更加寬鬆的判斷
-  const isGameOver = gameStatus === '遊戲結束' || !!winner;
-  console.log("勝利檢查:", {isGameOver, gameStatus, winner});
+  // 檢查勝利條件 - 更寬鬆的判斷，優化勝利檢測邏輯
+  const isGameOver = gameStatus === '遊戲結束' || !!winner || 
+                     (players.length > 0 && players.some(player => player.score >= 20));
+  
+  console.log("勝利檢查:", {
+    isGameOver, 
+    gameStatus, 
+    winner, 
+    hasPlayerWithHighScore: players.length > 0 && players.some(player => player.score >= 20)
+  });
 
   if (isGameOver) {
     console.log("顯示勝利畫面:", { gameStatus, winner, players });
     
     // 確保有勝利者，如果 winner 為空，則使用分數最高的玩家
-    const actualWinner = winner || 
-      (players.length > 0 ? [...players].sort((a, b) => b.score - a.score)[0].name : playerName);
+    const winningPlayer = players.find(player => player.score >= 20);
+    const highestScorePlayer = [...players].sort((a, b) => b.score - a.score)[0];
+    const actualWinner = winner || (winningPlayer ? winningPlayer.name : highestScorePlayer?.name || playerName);
+    
+    console.log("確定的勝利者:", actualWinner, "勝利閾值檢查:", winningPlayer);
     
     return (
       <GameVictory 
